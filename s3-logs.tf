@@ -13,7 +13,7 @@ data "aws_iam_policy_document" "log" {
       "s3:GetObject",
     ]
     resources = [
-      format("arn:aws:s3:::%s/*", var.s3_logs_bucket)
+      format("%s/*", var.s3_logs_bucket_arn)
     ]
     principals {
       type        = "AWS"
