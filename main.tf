@@ -119,11 +119,3 @@ resource "aws_s3_bucket_ownership_controls" "this" {
     object_ownership = var.object_ownership # ObjectWriter or BucketOwnerEnforced, BucketOwnerEnforced
   }
 }
-
-# Map to s3-target-bucket for access logs
-resource "aws_s3_bucket_logging" "this" {
-  count         = local.enabled_s3_bucket_logging ? 1 : 0
-  bucket        = var.bucket
-  target_bucket = var.s3_logs_bucket
-  target_prefix = "logs/"
-}
