@@ -41,5 +41,5 @@ variable "object_ownership" {
 variable "s3_logs_bucket" {
   description = "The name of the bucket where you want Amazon S3 to store server access logs."
   type        = string
-  default     = null
+  default     = ""
 }

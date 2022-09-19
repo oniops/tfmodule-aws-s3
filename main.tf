@@ -1,5 +1,6 @@
 locals {
-  tags = var.context.tags
+  tags                      = var.context.tags
+  enabled_s3_bucket_logging = var.s3_logs_bucket == "" || length(var.s3_logs_bucket) < 1 ? 0 : 1
 }
 
 data "aws_canonical_user_id" "current" {}
@@ -119,9 +120,9 @@ resource "aws_s3_bucket_ownership_controls" "this" {
   }
 }
 
-# S3 access logs
+# Map to s3-target-bucket for access logs
 resource "aws_s3_bucket_logging" "this" {
-  count         = var.s3_logs_bucket != null ? 1 : 0
+  count         = local.enabled_s3_bucket_logging ? 1 : 0
   bucket        = var.bucket
   target_bucket = var.s3_logs_bucket
   target_prefix = "logs/"
