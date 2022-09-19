@@ -1,6 +1,6 @@
 locals {
   tags                      = var.context.tags
-  enabled_s3_bucket_logging = var.s3_logs_bucket == "" || length(var.s3_logs_bucket) < 1 ? 0 : 1
+  enabled_s3_bucket_logging = var.s3_logs_bucket == "" || length(var.s3_logs_bucket) < 1 ? false : true
 }
 
 data "aws_canonical_user_id" "current" {}
