@@ -43,9 +43,3 @@ variable "s3_logs_bucket" {
   type        = string
   default     = ""
 }
-
-variable "s3_logs_bucket_arn" {
-  description = "The name of the bucket where you want Amazon S3 to store server access logs."
-  type        = string
-  default     = ""
-}
