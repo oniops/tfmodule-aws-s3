@@ -1,34 +1,37 @@
 locals {
   tags                      = var.context.tags
   enabled_s3_bucket_logging = length(var.s3_logs_bucket) > 1 ? true : false
+  enabled_object_lock       = var.object_lock_enabled ? true : false
 }
 
 data "aws_canonical_user_id" "current" {}
 
 resource "aws_s3_bucket" "this" {
-  bucket              = var.bucket
+  bucket = var.bucket
   # acl                 = "private"
-  object_lock_enabled = false
 
-  versioning {
-    enabled    = false
-    mfa_delete = false
-  }
+  object_lock_enabled = var.object_lock_enabled
+
+  #  replace with "aws_s3_bucket_versioning"
+  #  versioning {
+  #    enabled    = false
+  #    mfa_delete = false
+  #  }
 
   tags = merge(local.tags, { Name = var.bucket })
 
 
   lifecycle {
     ignore_changes = [
-      acceleration_status,
-      acl,
+      # acceleration_status, - The attribute "acceleration_status" is deprecated. Refer to the provider documentation for details.
+      # acl, -  The attribute "acl" is deprecated. Refer to the provider documentation for details.
+      # request_payer, - The attribute "request_payer" is deprecated. Refer to the provider documentation for details.
       grant,
       cors_rule,
       lifecycle_rule,
       logging,
       object_lock_configuration,
       replication_configuration,
-      request_payer,
       server_side_encryption_configuration,
       versioning,
       website
@@ -43,7 +46,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   rule {
     apply_server_side_encryption_by_default {
       # kms_master_key_id = aws_kms_key.mykey.arn # for CMK
-      sse_algorithm = "AES256" # AES256 or aws:kms
+      sse_algorithm = var.sse_algorithm
     }
   }
 
@@ -117,5 +120,18 @@ resource "aws_s3_bucket_ownership_controls" "this" {
 
   rule {
     object_ownership = var.object_ownership # ObjectWriter or BucketOwnerEnforced, BucketOwnerEnforced
+  }
+}
+
+resource "aws_s3_bucket_object_lock_configuration" "this" {
+  count = local.enabled_object_lock ? 1 : 0
+
+  bucket = aws_s3_bucket.this.id
+
+  rule {
+    default_retention {
+      mode = var.object_lock_mode
+      days = var.object_lock_days
+    }
   }
 }

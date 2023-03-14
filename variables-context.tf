@@ -3,7 +3,7 @@ variable "context" {
     project     = string
     region      = string
     environment = string
-    department  = string
+    team        = string
     domain      = string
     pri_domain  = string
     tags        = map(string)
