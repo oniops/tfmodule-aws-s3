@@ -23,14 +23,6 @@ locals {
   account       = "370166107047"
 }
 
-module "trail" {
-  source              = "../../"
-  context             = module.ctx.context
-  bucket              = format("%s-%s-s3", local.bucket_prefix, "cloudtrail")
-  object_ownership    = "BucketOwnerPreferred"
-  object_lock_enabled = true
-  sse_algorithm       = "aws:kms"
-}
 
 data "aws_iam_policy_document" "trail" {
   statement {
@@ -76,6 +68,15 @@ data "aws_iam_policy_document" "trail" {
 
 }
 
+
+module "trail" {
+  source              = "../../"
+  context             = module.ctx.context
+  bucket              = format("%s-%s-s3", local.bucket_prefix, "cloudtrail")
+  object_ownership    = "BucketOwnerPreferred"
+  object_lock_enabled = true
+}
+
 resource "aws_s3_bucket_policy" "policy" {
   bucket = module.trail.bucket_id
   policy = data.aws_iam_policy_document.trail.json
@@ -85,9 +86,7 @@ resource "aws_s3_bucket_versioning" "this" {
   bucket = module.trail.bucket_id
   versioning_configuration {
     status     = "Enabled"
-    # mfa_delete = "Enabled" # Only available for ROOT account
+    # mfa_delete = "Enabled" # Only available for ROOT account. just use CLI
   }
   expected_bucket_owner = local.account
-  #
-  # mfa = "${var.mfa_serial} ${var.mfa_token}"
 }
