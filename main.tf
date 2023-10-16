@@ -115,7 +115,10 @@ resource "aws_s3_bucket_acl" "this" {
 
   }
 
-  depends_on = [aws_s3_bucket.this]
+  depends_on = [
+    aws_s3_bucket.this,
+    aws_s3_bucket_ownership_controls.this
+  ]
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
