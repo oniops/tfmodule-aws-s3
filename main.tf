@@ -1,12 +1,13 @@
 locals {
   tags                      = var.context.tags
-  enabled_s3_bucket_logging = length(var.s3_logs_bucket) > 1 ? true : false
-  enabled_object_lock       = var.object_lock_enabled ? true : false
+  enabled_s3_bucket_logging = var.create_bucket && length(var.s3_logs_bucket) > 1 ? true : false
+  enabled_object_lock       = var.create_bucket && var.object_lock_enabled ? true : false
 }
 
 data "aws_canonical_user_id" "current" {}
 
 resource "aws_s3_bucket" "this" {
+  count  = var.create_bucket ? 1 : 0
   bucket = var.bucket
   # acl                 = "private"
 
@@ -41,7 +42,8 @@ resource "aws_s3_bucket" "this" {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  bucket = aws_s3_bucket.this.bucket
+  count  = var.create_bucket ? 1 : 0
+  bucket = try(aws_s3_bucket.this[0].bucket, "")
 
   rule {
     apply_server_side_encryption_by_default {
@@ -55,7 +57,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
 
 # Block public access settings
 resource "aws_s3_bucket_public_access_block" "this" {
-  bucket = aws_s3_bucket.this.id
+  count  = var.create_bucket ? 1 : 0
+  bucket = try(aws_s3_bucket.this[0].id, "")
 
   block_public_acls       = var.block_public_acls
   block_public_policy     = var.block_public_policy
@@ -65,9 +68,9 @@ resource "aws_s3_bucket_public_access_block" "this" {
 
 # Bucket acl
 resource "aws_s3_bucket_acl" "this" {
-  count = var.object_ownership == "BucketOwnerEnforced" ? 0 : 1
+  count = !var.create_bucket || var.object_ownership == "BucketOwnerEnforced"  ? 0 : 1
 
-  bucket = aws_s3_bucket.this.id
+  bucket = try(aws_s3_bucket.this[0].id, "")
   # expected_bucket_owner = aws_account_id
 
   access_control_policy {
@@ -116,7 +119,8 @@ resource "aws_s3_bucket_acl" "this" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
-  bucket = aws_s3_bucket.this.id
+  count  = var.create_bucket ? 1 : 0
+  bucket = try(aws_s3_bucket.this[0].id, "")
 
   rule {
     object_ownership = var.object_ownership # ObjectWriter or BucketOwnerEnforced, BucketOwnerEnforced
@@ -126,7 +130,7 @@ resource "aws_s3_bucket_ownership_controls" "this" {
 resource "aws_s3_bucket_object_lock_configuration" "this" {
   count = local.enabled_object_lock ? 1 : 0
 
-  bucket = aws_s3_bucket.this.id
+  bucket = try(aws_s3_bucket.this[0].id, "")
 
   rule {
     default_retention {

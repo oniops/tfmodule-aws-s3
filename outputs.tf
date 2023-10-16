@@ -1,11 +1,11 @@
 output "bucket" {
-  value = aws_s3_bucket.this.bucket
+  value = try(aws_s3_bucket.this[0].bucket, "")
 }
 
 output "bucket_id" {
-  value = aws_s3_bucket.this.id
+  value = try(aws_s3_bucket.this[0].id, "")
 }
 
 output "bucket_arn" {
-  value = aws_s3_bucket.this.arn
+  value = try(aws_s3_bucket.this[0].arn, "")
 }

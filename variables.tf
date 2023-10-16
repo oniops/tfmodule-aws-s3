@@ -1,3 +1,8 @@
+variable "create_bucket" {
+  type = bool
+  default = true
+}
+
 variable "bucket" {
   description = "The name of the bucket."
   type        = string
