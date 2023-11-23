@@ -1,5 +1,6 @@
 locals {
   tags                      = var.context.tags
+  bucket_name               = var.bucket != null ? var.bucket : format("%s-%s-s3", var.context.s3_bucket_prefix, var.bucket_alias)
   enabled_s3_bucket_logging = var.create_bucket && length(var.s3_logs_bucket) > 1 ? true : false
   enabled_object_lock       = var.create_bucket && var.object_lock_enabled ? true : false
 }
@@ -8,7 +9,7 @@ data "aws_canonical_user_id" "current" {}
 
 resource "aws_s3_bucket" "this" {
   count  = var.create_bucket ? 1 : 0
-  bucket = var.bucket
+  bucket = local.bucket_name
   # acl                 = "private"
 
   object_lock_enabled = var.object_lock_enabled
@@ -19,7 +20,9 @@ resource "aws_s3_bucket" "this" {
   #    mfa_delete = false
   #  }
 
-  tags = merge(local.tags, { Name = var.bucket })
+  tags = merge(local.tags, {
+    Name = local.bucket_name
+  })
 
 
   lifecycle {

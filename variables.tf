@@ -6,6 +6,13 @@ variable "create_bucket" {
 variable "bucket" {
   description = "The name of the bucket."
   type        = string
+  default = null
+}
+
+variable "bucket_alias" {
+  description = "The name of the bucket."
+  type        = string
+  default = null
 }
 
 variable "block_public_acls" {
