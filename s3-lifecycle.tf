@@ -9,22 +9,29 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       id     = try(rule.value.id, "five-years-rule")
       status = try(rule.value.status, "Enabled")
 
-      # 1 years
-      transition {
-        storage_class = "GLACIER"
-        days          = try(rule.value.glacier_days, 365)
+      dynamic "transition" {
+        for_each = try(rule.value.glacier_days, 0) > 0 ? ["true"] : []
+        content {
+          storage_class = "GLACIER"
+          days          = try(rule.value.glacier_days, 365)
+        }
       }
 
-      # 2 years
-      transition {
-        storage_class = "DEEP_ARCHIVE"
-        days          = try(rule.value.deep_archive_days, 730)
+      dynamic "transition" {
+        for_each = try(rule.value.deep_archive_days, 0) > 0 ? ["true"] : []
+        content {
+          storage_class = "DEEP_ARCHIVE"
+          days          = try(rule.value.deep_archive_days, 730)
+        }
       }
 
-      # 5 years
-      expiration {
-        days = try(rule.value.expiration_days, 1825)
+      dynamic "expiration" {
+        for_each = try(rule.value.expiration_days, 0) > 0 ? ["true"] : []
+        content {
+          days = try(rule.value.expiration_days, 1825)
+        }
       }
+
     }
   }
 
