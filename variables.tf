@@ -1,18 +1,18 @@
 variable "create_bucket" {
-  type = bool
+  type    = bool
   default = true
 }
 
 variable "bucket" {
   description = "The name of the bucket."
   type        = string
-  default = null
+  default     = null
 }
 
 variable "bucket_alias" {
   description = "The name of the bucket."
   type        = string
-  default = null
+  default     = null
 }
 
 variable "block_public_acls" {
@@ -78,4 +78,28 @@ variable "object_lock_days" {
   description = "Number of days that you want to specify for the default retention period."
   type        = number
   default     = 365
+}
+
+variable "enable_bucket_lifecycle" {
+  type    = bool
+  default = false
+}
+
+variable "lifecycle_rules" {
+  type        = any
+  default     = null
+  description = <<EOF
+
+  lifecycle_rules = [
+    {
+      id                = "two-years-rule"
+      status            = "Enabled"
+      glacier_days      = 180
+      deep_archive_days = 365
+      expiration_days   = 730
+    }
+  ]
+
+EOF
+
 }
