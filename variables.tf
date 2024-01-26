@@ -101,5 +101,19 @@ variable "lifecycle_rules" {
   ]
 
 EOF
+}
 
+variable "versioning" {
+  type    = map(string)
+  default = {}
+  description = <<EOF
+Enable versioning state of the bucket
+
+  versioning = {
+    status                = "Enabled"  # Valid values: Enabled, Suspended, or Disabled
+    mfa_delete            = "Disabled" # Valid values: Enabled or Disabled
+    expected_bucket_owner = null # Account ID of the expected bucket owner.
+  }
+
+EOF
 }
