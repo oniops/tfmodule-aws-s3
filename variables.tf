@@ -124,7 +124,7 @@ EOF
 }
 
 # replication
-variable "replication_enabled" {
+variable "enable_replication" {
   type    = bool
   default = false
 }

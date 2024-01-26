@@ -1,11 +1,12 @@
 locals {
   # Must have bucket versioning enabled first
   bucket_versioning_status = try(aws_s3_bucket_versioning.this[0].versioning_configuration.*.status[0], null)
-  replication_enabled      = var.replication_enabled && local.enabled_versioning
+  enable_versioning_status = lower(local.bucket_versioning_status) == "enabled" ? true : false
+  enabled_replication      = var.enable_replication && local.enable_versioning_status
 }
 
 resource "aws_s3_bucket_replication_configuration" "this" {
-  count  = local.replication_enabled ? 1 : 0
+  count  = local.enabled_replication ? 1 : 0
   bucket = aws_s3_bucket.this[0].bucket
   role   = var.replication_role_arn #  aws_iam_role.east_replication.arn
 
@@ -64,8 +65,13 @@ resource "aws_s3_bucket_replication_configuration" "this" {
         }
       }
 
-    }
-  }
+      destination {
+        bucket = ""
+      }
+
+    } # end-of-content
+
+  } # end-of-rule
 
   depends_on = [aws_s3_bucket_versioning.this]
 }

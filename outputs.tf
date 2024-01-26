@@ -27,5 +27,5 @@ output "versioning_status" {
 }
 
 output "enable_versioning_status" {
-  value = lookup(local.bucket_versioning_status) == "enabled" ? true : false
+  value = local.enable_versioning_status
 }
