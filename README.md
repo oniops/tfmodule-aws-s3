@@ -25,7 +25,7 @@ module "enc" {
   bucket             = "simple-enc-s3"
   object_ownership   = "ObjectWriter"
   sse_algorithm      = "aws:kms"
-  kms_master_key_id  = "<kms_key_id>"
+  kms_master_key_id  = data.aws_kms_alias.main.id
   bucket_key_enabled = true
 }
 ```
