@@ -1,7 +1,3 @@
-locals {
-  bucket_versioning_status = try(aws_s3_bucket_versioning.this[0].versioning_configuration.*.status[0], null)
-}
-
 output "bucket" {
   value = local.bucket_name
 }
