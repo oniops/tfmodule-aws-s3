@@ -155,32 +155,32 @@ Configuration for S3 bucket replication.
   ]
 
   ----- attributes example -----
-  filter
-  - base on object's prefix
-    filter = {
-      prefix = "one"
-    }
-
-  - base on object's tag
-    filter = {
-      tag    = {
-        Project = "simple"
+  # filter
+    - base on object's prefix
+      filter = {
+        prefix = "one"
       }
-    }
 
-  - base on object's prefix and one more tags
-    filter = {
-      and = [
-        {
-          prefix = "multi"
-          tags   = {
-            Porject     = "simple"
-            Team        = "DevOps"
-            ProductType = "EC2"
-          }
+    - base on object's tag
+      filter = {
+        tag    = {
+          Project = "simple"
         }
-      ]
-    }
+      }
+
+    - base on object's prefix and one more tags
+      filter = {
+        and = [
+          {
+            prefix = "multi"
+            tags   = {
+              Porject     = "simple"
+              Team        = "DevOps"
+              ProductType = "EC2"
+            }
+          }
+        ]
+      }
 
 EOF
 
