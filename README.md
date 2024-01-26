@@ -16,6 +16,20 @@ module "basic" {
 }
 ```
 
+### Encryption
+
+```hcl
+module "enc" {
+  source             = "git::https://code.bespinglobal.com/scm/op/tfmodule-aws-s3.git"
+  context            = module.ctx.context
+  bucket             = "simple-enc-s3"
+  object_ownership   = "ObjectWriter"
+  sse_algorithm      = "aws:kms"
+  kms_master_key_id  = "<kms_key_id>"
+  bucket_key_enabled = true
+}
+```
+
 ### LifeCycle
 
 ```hcl
