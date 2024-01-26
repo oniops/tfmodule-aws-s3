@@ -135,24 +135,6 @@ variable "replication_role_arn" {
   default     = null
 }
 
-##########################
-locals {
-
-  replication_rules = [
-    {
-      id                          = "all"
-      priority                    = 0
-      status                      = true # Status of the rule. true is "Enabled", false is "Disabled"
-      delete_marker_replication   = false
-      existing_object_replication = false
-      destination                 = {
-        bucket        = "$${destination_bucket_arn}>" # ARN of the bucket where you want Amazon S3 to store the results.
-        storage_class = "STANDARD"
-      }
-    },
-  ]
-}
-
 variable "replication_rules" {
   type        = any
   default     = null
@@ -172,7 +154,8 @@ Configuration for S3 bucket replication.
       },
   ]
 
-  example filter)
+  ----- attributes example -----
+  filter
   - base on object's prefix
     filter = {
       prefix = "one"
@@ -198,7 +181,6 @@ Configuration for S3 bucket replication.
         }
       ]
     }
-
 
 EOF
 
