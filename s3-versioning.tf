@@ -1,10 +1,10 @@
 locals {
-  versioning = var.versioning != null && length(var.versioning) ? var.versioning : var.enable_versioning ? {
+  versioning = var.versioning != null && length(var.versioning) > 0 ? var.versioning : var.enable_versioning ? {
     status     = "Enabled"
     mfa_delete = "Disabled"
   } : {}
 
-  enabled_versioning = var.create_bucket &&  length(local.versioning) > 0 ? true : false
+  enabled_versioning = var.create_bucket && length(local.versioning) > 0 ? true : false
 }
 
 resource "aws_s3_bucket_versioning" "this" {
