@@ -1,7 +1,7 @@
 locals {
   # Must have bucket versioning enabled first
   bucket_versioning_status = try(aws_s3_bucket_versioning.this[0].versioning_configuration.*.status[0], null)
-  enable_versioning_status = lower(local.bucket_versioning_status) == "enabled" ? true : false
+  enable_versioning_status = try(lower(local.bucket_versioning_status), "") == "enabled" ? true : false
   enabled_replication      = var.enable_replication && local.enable_versioning_status
 }
 
@@ -69,9 +69,11 @@ resource "aws_s3_bucket_replication_configuration" "this" {
         bucket = ""
       }
 
-    } # end-of-content
+    }
+    # end-of-content
 
-  } # end-of-rule
+  }
+  # end-of-rule
 
   depends_on = [aws_s3_bucket_versioning.this]
 }
