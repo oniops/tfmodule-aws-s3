@@ -18,11 +18,8 @@ resource "aws_s3_bucket_replication_configuration" "this" {
       priority = try(rule.value.priority, null)
       status   = try(tobool(rule.value.status) ? "Enabled" : "Disabled", "Disabled")
 
-      dynamic "delete_marker_replication" {
-        for_each = try(rule.value.delete_marker_replication, null) == null ? [] : [true]
-        content {
-          status = try(tobool(rule.value.delete_marker_replication) ? "Enabled" : "Disabled", "Disabled")
-        }
+      delete_marker_replication {
+        status = try(tobool(rule.value.delete_marker_replication) ? "Enabled" : "Disabled", "Disabled")
       }
 
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html
@@ -36,15 +33,19 @@ resource "aws_s3_bucket_replication_configuration" "this" {
 
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-add-config.html#replication-config-optional-filter
       dynamic "filter" {
+        for_each = length(try(flatten([rule.value.filter]), [])) == 0 ? [true] : []
+        content {
+        }
+      }
+
+      dynamic "filter" {
         iterator = filter
         for_each = length(keys(lookup(rule.value, "filter", {}))) > 0 ? [lookup(rule.value, "filter", {})] : []
 
         content {
           dynamic "and" {
             iterator = and
-            for_each = lookup(filter.value, "and", [
-            ])
-
+            for_each = lookup(filter.value, "and", [])
             content {
               prefix = lookup(and.value, "prefix", null)
               tags   = lookup(and.value, "tags", null)
@@ -89,7 +90,7 @@ resource "aws_s3_bucket_replication_configuration" "this" {
           dynamic "replication_time" {
             for_each = try(flatten([destination.value.replication_time]), [])
             content {
-              status = try(tobool(destination.value.replication_time) ? "Enabled" : destination.value.replication_time, "Disabled")
+              status = try(tobool(replication_time.value.status) ? "Enabled" : replication_time.value.status, "Disabled")
               dynamic "time" {
                 for_each = try(replication_time.value.minutes, null) == null ? [] : [true]
                 content {
@@ -114,6 +115,25 @@ resource "aws_s3_bucket_replication_configuration" "this" {
         }
       }
 
+      dynamic "source_selection_criteria" {
+        for_each = try(flatten([rule.value.source_selection_criteria]), [])
+
+        content {
+          dynamic "replica_modifications" {
+            for_each = flatten([try(source_selection_criteria.value.replica_modifications.enabled, source_selection_criteria.value.replica_modifications.status, [])])
+            content {
+              status = try(tobool(replica_modifications.value) ? "Enabled" : "Disabled", replica_modifications.value, "Disabled")
+            }
+          }
+
+          dynamic "sse_kms_encrypted_objects" {
+            for_each = flatten([try(source_selection_criteria.value.sse_kms_encrypted_objects.enabled, source_selection_criteria.value.sse_kms_encrypted_objects.status, [])])
+            content {
+              status = try(tobool(sse_kms_encrypted_objects.value) ? "Enabled" : "Disabled", sse_kms_encrypted_objects.value, "Disabled")
+            }
+          }
+        }
+      }
 
     }
     # end-of-content

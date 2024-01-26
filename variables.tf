@@ -168,23 +168,31 @@ variable "replication_rules" {
 Configuration for S3 bucket replication.
 
   replication_rules = [
-      {
-        id     = "all"
-        priority     = 0
-        status = "Enabled"
-        delete_marker_replication = true
-        destination = {
-          bucket        = "$${destination_bucket_arn}" # ARN of the bucket where you want Amazon S3 to store the results.
-          storage_class = "STANDARD"
+    {
+      id                          = "all"
+      status                      = true
+      delete_marker_replication   = true                          # delete_marker_replication attribute is mandatory because of using filter.
+
+      destination                 = {
+        bucket             = module.s3_example_clone.bucket_arn   # ARN of the bucket where you want Amazon S3 to store the results.
+        storage_class      = "STANDARD"
+        replica_kms_key_id = data.aws_kms_key.replica.arn         # if set this value, You have to configure `source_selection_criteria.sse_kms_encrypted_objects`
+      }
+
+      source_selection_criteria = {
+        sse_kms_encrypted_objects = {
+          enabled = true
         }
-      },
+      }
+
+    }
   ]
 
   ----- attributes example -----
   # filter
     - base on object's prefix
       filter = {
-        prefix = "one"
+        prefix = "oss"
       }
 
     - base on object's tag
