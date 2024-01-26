@@ -103,6 +103,11 @@ variable "lifecycle_rules" {
 EOF
 }
 
+variable "enable_versioning" {
+  type    = bool
+  default = false
+}
+
 variable "versioning" {
   type    = map(string)
   default = {}
