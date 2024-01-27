@@ -10,20 +10,14 @@ data "aws_canonical_user_id" "current" {}
 resource "aws_s3_bucket" "this" {
   count  = var.create_bucket ? 1 : 0
   bucket = local.bucket_name
-  # acl                 = "private"
 
   object_lock_enabled = var.object_lock_enabled
-
-  #  replace with "aws_s3_bucket_versioning"
-  #  versioning {
-  #    enabled    = false
-  #    mfa_delete = false
-  #  }
 
   tags = merge(local.tags, {
     Name = local.bucket_name
   })
 
+  force_destroy = var.force_destroy
 
   lifecycle {
     ignore_changes = [

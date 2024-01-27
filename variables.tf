@@ -3,6 +3,12 @@ variable "create_bucket" {
   default = true
 }
 
+variable "force_destroy" {
+  description = "All objects (including any locked objects) should be deleted from the bucket"
+  type        = bool
+  default     = false
+}
+
 variable "bucket" {
   description = "The name of the bucket."
   type        = string
