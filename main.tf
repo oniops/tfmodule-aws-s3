@@ -1,6 +1,8 @@
 locals {
+  project                   = var.context.project
   tags                      = var.context.tags
-  bucket_name               = var.bucket != null ? var.bucket : format("%s-%s-s3", var.context.s3_bucket_prefix, var.bucket_alias)
+  bucket_name               = var.bucket != null ? var.bucket : format("%s-%s-s3", var.context.s3_bucket_prefix, var.bucket_name)
+  bucket_simple_name        = var.bucket_name != null ? var.bucket_name : trimsuffix(trimprefix(var.bucket, "${var.context.s3_bucket_prefix}-"), "-s3")
   enabled_s3_bucket_logging = var.create_bucket && length(var.s3_logs_bucket) > 1 ? true : false
   enabled_object_lock       = var.create_bucket && var.object_lock_enabled ? true : false
 }

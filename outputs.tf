@@ -2,8 +2,8 @@ output "bucket" {
   value = local.bucket_name
 }
 
-output "bucket_alias" {
-  value = var.bucket_alias
+output "bucket_name" {
+  value = local.bucket_simple_name
 }
 
 output "bucket_id" {
