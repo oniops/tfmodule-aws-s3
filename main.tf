@@ -10,20 +10,14 @@ data "aws_canonical_user_id" "current" {}
 resource "aws_s3_bucket" "this" {
   count  = var.create_bucket ? 1 : 0
   bucket = local.bucket_name
-  # acl                 = "private"
 
   object_lock_enabled = var.object_lock_enabled
-
-  #  replace with "aws_s3_bucket_versioning"
-  #  versioning {
-  #    enabled    = false
-  #    mfa_delete = false
-  #  }
 
   tags = merge(local.tags, {
     Name = local.bucket_name
   })
 
+  force_destroy = var.force_destroy
 
   lifecycle {
     ignore_changes = [
@@ -44,19 +38,6 @@ resource "aws_s3_bucket" "this" {
 
 }
 
-resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  count  = var.create_bucket ? 1 : 0
-  bucket = try(aws_s3_bucket.this[0].bucket, "")
-
-  rule {
-    apply_server_side_encryption_by_default {
-      # kms_master_key_id = aws_kms_key.mykey.arn # for CMK
-      sse_algorithm = var.sse_algorithm
-    }
-  }
-
-  depends_on = [aws_s3_bucket.this]
-}
 
 # Block public access settings
 resource "aws_s3_bucket_public_access_block" "this" {

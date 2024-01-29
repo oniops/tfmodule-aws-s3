@@ -22,4 +22,10 @@ output "bucket_regional_domain_name" {
   value = try(aws_s3_bucket.this[0].bucket_regional_domain_name, "")
 }
 
+output "versioning_status" {
+  value = local.bucket_versioning_status
+}
 
+output "enable_versioning_status" {
+  value = local.enable_versioning_status
+}
