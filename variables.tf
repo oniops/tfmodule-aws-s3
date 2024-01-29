@@ -175,7 +175,7 @@ Configuration for S3 bucket replication.
 
       id                          = "all"
       status                      = true
-
+      priority                    = 0
   replication_rules = [
     {
       id                          = "all"
