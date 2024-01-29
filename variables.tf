@@ -10,12 +10,12 @@ variable "force_destroy" {
 }
 
 variable "bucket" {
-  description = "The name of the bucket."
+  description = "The fullname of the bucket."
   type        = string
   default     = null
 }
 
-variable "bucket_alias" {
+variable "bucket_name" {
   description = "The name of the bucket."
   type        = string
   default     = null
@@ -173,15 +173,20 @@ variable "replication_rules" {
   description = <<EOF
 Configuration for S3 bucket replication.
 
+      id                          = "all"
+      status                      = true
+      priority                    = 0
   replication_rules = [
     {
       id                          = "all"
       status                      = true
       delete_marker_replication   = true                          # delete_marker_replication attribute is mandatory because of using filter.
-
+      # Can't set following "existing_object_replication" attribute because AWS is not supported yet.
+      # if set true, You have to add IAM polices for S3 BatchOperation
+      # existing_object_replication = true
       destination                 = {
         bucket             = module.s3_example_clone.bucket_arn   # ARN of the bucket where you want Amazon S3 to store the results.
-        storage_class      = "STANDARD"
+        storage_class      = "STANDARD_IA"                        # see - https://docs.aws.amazon.com/AmazonS3/latest/API/API_Destination.html#AmazonS3-Type-Destination-StorageClass
         replica_kms_key_id = data.aws_kms_key.replica.arn         # if set this value, You have to configure `source_selection_criteria.sse_kms_encrypted_objects`
       }
 
@@ -224,4 +229,10 @@ Configuration for S3 bucket replication.
 
 EOF
 
+}
+
+variable "replication_report_bucket_arn" {
+  description = "For S3 Batch Operations, Report bucket arn must be defined."
+  type        = string
+  default     = null
 }

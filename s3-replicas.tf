@@ -2,16 +2,19 @@ locals {
   # Must have bucket versioning enabled first
   bucket_versioning_status = try(aws_s3_bucket_versioning.this[0].versioning_configuration.*.status[0], null)
   enable_versioning_status = try(lower(local.bucket_versioning_status), "") == "enabled" ? true : false
+  replication_rules        = flatten(try([var.replication_rules], []))
   enabled_replication      = var.enable_replication && local.enable_versioning_status
+  create_replication_role  = local.enabled_replication && var.replication_role_arn == null ? true : false
+  replication_role_arn     = var.replication_role_arn != null ? var.replication_role_arn : try(aws_iam_role.replica[0].arn, "")
 }
 
 resource "aws_s3_bucket_replication_configuration" "this" {
   count  = local.enabled_replication ? 1 : 0
   bucket = aws_s3_bucket.this[0].bucket
-  role   = var.replication_role_arn #  aws_iam_role.east_replication.arn
+  role   = local.replication_role_arn #  aws_iam_role.east_replication.arn
 
   dynamic "rule" {
-    for_each = var.replication_rules == null ? [] : var.replication_rules
+    for_each = local.replication_rules
 
     content {
       id       = try(rule.value.id, null)
@@ -81,7 +84,9 @@ resource "aws_s3_bucket_replication_configuration" "this" {
           }
 
           dynamic "encryption_configuration" {
-            for_each = flatten([try(destination.value.encryption_configuration.replica_kms_key_id, destination.value.replica_kms_key_id, [])])
+            for_each = flatten([
+              try(destination.value.encryption_configuration.replica_kms_key_id, destination.value.replica_kms_key_id, [])
+            ])
             content {
               replica_kms_key_id = encryption_configuration.value
             }
@@ -120,14 +125,18 @@ resource "aws_s3_bucket_replication_configuration" "this" {
 
         content {
           dynamic "replica_modifications" {
-            for_each = flatten([try(source_selection_criteria.value.replica_modifications.enabled, source_selection_criteria.value.replica_modifications.status, [])])
+            for_each = flatten([
+              try(source_selection_criteria.value.replica_modifications.enabled, source_selection_criteria.value.replica_modifications.status, [])
+            ])
             content {
               status = try(tobool(replica_modifications.value) ? "Enabled" : "Disabled", replica_modifications.value, "Disabled")
             }
           }
 
           dynamic "sse_kms_encrypted_objects" {
-            for_each = flatten([try(source_selection_criteria.value.sse_kms_encrypted_objects.enabled, source_selection_criteria.value.sse_kms_encrypted_objects.status, [])])
+            for_each = flatten([
+              try(source_selection_criteria.value.sse_kms_encrypted_objects.enabled, source_selection_criteria.value.sse_kms_encrypted_objects.status, [])
+            ])
             content {
               status = try(tobool(sse_kms_encrypted_objects.value) ? "Enabled" : "Disabled", sse_kms_encrypted_objects.value, "Disabled")
             }

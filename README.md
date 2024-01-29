@@ -51,7 +51,7 @@ module "simple" {
 }
 ```
 
-### Reflection
+### Replication
 
 ```hcl
 
