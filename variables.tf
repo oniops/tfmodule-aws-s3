@@ -129,8 +129,54 @@ variable "lifecycle_rules" {
       glacier_days      = 180
       deep_archive_days = 365
       expiration_days   = 730
+      filter = {}
     }
   ]
+
+  ----- filters example -----
+  # filter
+    - base on object's prefix
+      filter = {
+        prefix = "logs"
+      }
+
+    - base on object's tag
+      filter = {
+        tag    = {
+          Project = "simple"
+        }
+      }
+
+    - base on object's prefix and one more tags
+      filter = {
+        and = [
+          {
+            prefix = "multi"
+            tags   = {
+              Porject     = "simple"
+              ProductType = "EC2"
+            }
+          }
+        ]
+      }
+
+    - base on object's prefix
+      filter = {
+        prefix = "logs"
+        object_size_greater_than = 500    # (Optional) Minimum object size (in bytes) to which the rule applies.
+        object_size_less_than = 50        # (Optional) Maximum object size (in bytes) to which the rule applies.
+      }
+
+    # rendering sample
+    filter {
+      and {
+        prefix = "logs/"
+        tags = {
+          rule      = "Expire old CloudFront logs"
+          "ops:AutoClean" = "true"
+        }
+      }
+    }
 
 EOF
 }
@@ -199,7 +245,7 @@ Configuration for S3 bucket replication.
     }
   ]
 
-  ----- attributes example -----
+  ----- filters example -----
   # filter
     - base on object's prefix
       filter = {
