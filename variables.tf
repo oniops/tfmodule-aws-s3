@@ -282,3 +282,11 @@ variable "replication_report_bucket_arn" {
   type        = string
   default     = null
 }
+
+################################################################################
+# S3 bucket policies
+################################################################################
+variable "attach_deny_insecure_transport_policy" {
+  type = bool
+  default = false
+}
