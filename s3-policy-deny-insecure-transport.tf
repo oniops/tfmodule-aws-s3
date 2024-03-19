@@ -17,17 +17,17 @@ data "aws_iam_policy_document" "denyInsecureTransport" {
   }
 }
 
-locals {
-  policy_deny_insecure_transport = {
-    Sid       = "DenyInsecureTransport"
-    Effect    = "Deny"
-    Principal = "*"
-    Action    = "s3:*"
-    Resource  = [aws_s3_bucket.this[0].arn, "${aws_s3_bucket.this[0].arn}/*",]
-    Condition = {
-      Bool = {
-        "aws:SecureTransport" : "false"
-      }
-    }
-  }
-}
+#locals {
+#  policy_deny_insecure_transport = {
+#    Sid       = "DenyInsecureTransport"
+#    Effect    = "Deny"
+#    Principal = "*"
+#    Action    = "s3:*"
+#    Resource  = [aws_s3_bucket.this[0].arn, "${aws_s3_bucket.this[0].arn}/*",]
+#    Condition = {
+#      Bool = {
+#        "aws:SecureTransport" : "false"
+#      }
+#    }
+#  }
+#}
