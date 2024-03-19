@@ -1,0 +1,25 @@
+locals {
+
+  policy_allow_aws_inspector = {
+    Sid       = "AllowAwsInspector"
+    Effect    = "Allow"
+    Principal = {
+      Service = "inspector2.amazonaws.com"
+    }
+    Action = [
+      "s3:PutObjectAcl",
+      "s3:PutObject",
+      "s3:AbortMultipartUpload"
+    ]
+    Resource  = ["${aws_s3_bucket.this[0].arn}/*"]
+    Condition = {
+      StringEquals = {
+        "aws:SourceAccount" = local.account_id
+      }
+      ArnLike = {
+        "aws:SourceArn" : "arn:aws:inspector2:${local.region}:${local.account_id}:report/*"
+      }
+    }
+  }
+
+}

@@ -8,28 +8,10 @@ locals {
 #  || var.attach_deny_incorrect_encryption_headers
 #  || var.attach_deny_incorrect_kms_key_sse
 #  || var.attach_deny_unencrypted_object_uploads
-#  || var.attach_policy
+  || var.attach_custom_policy
 }
 
-data "aws_iam_policy_document" "denyInsecureTransport" {
-  count = var.create_bucket && var.attach_deny_insecure_transport_policy ? 1 : 0
 
-  statement {
-    sid    = "denyInsecureTransport"
-    effect = "Deny"
-    principals {
-      type        = "*"
-      identifiers = ["*"]
-    }
-    actions   = ["s3:*"]
-    resources = [aws_s3_bucket.this[0].arn, "${aws_s3_bucket.this[0].arn}/*",]
-    condition {
-      test     = "Bool"
-      variable = "aws:SecureTransport"
-      values   = ["false"]
-    }
-  }
-}
 
 data "aws_iam_policy_document" "pols" {
   count = var.create_bucket && local.attach_policy ? 1 : 0
@@ -44,7 +26,7 @@ data "aws_iam_policy_document" "pols" {
 #    var.attach_deny_incorrect_kms_key_sse ? data.aws_iam_policy_document.deny_incorrect_kms_key_sse[0].json : "",
 #    var.attach_deny_incorrect_encryption_headers ? data.aws_iam_policy_document.deny_incorrect_encryption_headers[0].json : "",
 #    var.attach_inventory_destination_policy || var.attach_analytics_destination_policy ? data.aws_iam_policy_document.inventory_and_analytics_destination_policy[0].json : "",
-#    var.attach_policy ? var.policy : ""
+    var.attach_custom_policy ? var.custom_policy : ""
   ])
 }
 

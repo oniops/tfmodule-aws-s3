@@ -290,3 +290,26 @@ variable "attach_deny_insecure_transport_policy" {
   type = bool
   default = false
 }
+
+variable "attach_custom_policy" {
+  type = bool
+  default = false
+}
+
+variable "custom_policy" {
+  type        = string
+  default     = null
+  description = <<EOF
+A valid bucket policy JSON document.
+
+  data "aws_iam_policy_document" "custom" { ... }
+
+  custom_policy = data.aws_iam_policy_document.custom.json
+
+EOF
+}
+
+variable "source_vpce" {
+  type = string
+  default = ""
+}

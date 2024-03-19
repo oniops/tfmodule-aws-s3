@@ -1,5 +1,7 @@
 locals {
   project                   = var.context.project
+  region                    = var.context.region
+  account_id                = var.context.account_id
   tags                      = var.context.tags
   bucket_name               = var.bucket != null ? var.bucket : format("%s-%s-s3", var.context.s3_bucket_prefix, var.bucket_name)
   bucket_simple_name        = var.bucket_name != null ? var.bucket_name : trimsuffix(trimprefix(var.bucket, "${var.context.s3_bucket_prefix}-"), "-s3")

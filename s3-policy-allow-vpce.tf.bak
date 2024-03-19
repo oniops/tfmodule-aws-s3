@@ -1,0 +1,21 @@
+locals {
+
+  policy_allow_vpc_endpoint = {
+    Sid       = "AllowReadFromVpce"
+    Effect    = "Allow"
+    Principal = {
+      AWS = "*"
+    }
+    Action = [
+      "s3:GetObjectVersion",
+      "s3:GetObject"
+    ]
+    Resource  = ["${aws_s3_bucket.this[0].arn}/*"]
+    Condition = {
+      StringEquals = {
+        "aws:SourceVpce" = var.source_vpce
+      }
+    }
+  }
+
+}
