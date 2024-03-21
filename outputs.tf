@@ -1,8 +1,8 @@
-output "bucket" {
+output "bucket_name" {
   value = local.bucket_name
 }
 
-output "bucket_name" {
+output "bucket_simple_name" {
   value = local.bucket_simple_name
 }
 
@@ -12,6 +12,10 @@ output "bucket_id" {
 
 output "bucket_arn" {
   value = try(aws_s3_bucket.this[0].arn, "")
+}
+
+output "local_bucket_arn" {
+  value = "arn:aws:s3:::${local.bucket_name}"
 }
 
 output "bucket_domain_name" {
