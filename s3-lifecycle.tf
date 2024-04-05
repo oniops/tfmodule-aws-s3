@@ -43,6 +43,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         }
       }
 
+      dynamic "transition" {
+        for_each = try(rule.value.itl_tier_days, 0) > 0 ? [true] : []
+        content {
+          storage_class = "INTELLIGENT_TIERING"
+          days          = try(rule.value.itl_tier_days, 365)
+        }
+      }
 
       dynamic "transition" {
         for_each = try(rule.value.glacier_days, 0) > 0 ? [true] : []

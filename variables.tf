@@ -124,12 +124,33 @@ variable "lifecycle_rules" {
 
   lifecycle_rules = [
     {
-      id                = "two-years-rule"
+      id                = "default-rule"
+      status            = "Enabled"
+      expiration_days   = 730
+    },
+  ]
+
+  lifecycle_rules = [
+    {
+      id                = "first-rule"
       status            = "Enabled"
       glacier_days      = 180
       deep_archive_days = 365
       expiration_days   = 730
-      filter = {}
+      filter          = {
+        prefix = "first/"
+      }
+    },
+    {
+      id                = "seconds-rule"
+      status            = "Enabled"
+      itl_tier_days     = 90
+      glacier_days      = 180
+      deep_archive_days = 365
+      expiration_days   = 730
+      filter          = {
+        prefix = "second/"
+      }
     }
   ]
 
@@ -177,7 +198,6 @@ variable "lifecycle_rules" {
         }
       }
     }
-
 EOF
 }
 
