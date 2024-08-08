@@ -311,6 +311,51 @@ variable "attach_deny_insecure_transport_policy" {
   default = false
 }
 
+variable "attach_lb_log_delivery_policy" {
+  description = "Controls if S3 bucket should have ALB/NLB log delivery policy attached"
+  type        = bool
+  default     = false
+}
+
+variable "attach_deny_incorrect_encryption_headers" {
+  description = "Controls if S3 bucket should deny incorrect encryption headers policy attached."
+  type        = bool
+  default     = false
+}
+
+variable "attach_access_log_delivery_policy" {
+  description = "Controls if S3 bucket should have S3 access log delivery policy attached"
+  type        = bool
+  default     = false
+}
+
+variable "access_log_delivery_policy_source_buckets" {
+  type        = list(string)
+  default     = []
+  description = <<EOF
+List of S3 bucket ARNs which should be allowed to deliver access logs to this bucket.
+
+  access_log_delivery_policy_source_buckets = [
+    "arn:aws:s3:::your-source-bucket-0001-s3",
+    "arn:aws:s3:::your-source-bucket-0001-s2"
+  ]
+EOF
+}
+
+variable "access_log_delivery_policy_source_accounts" {
+  type        = list(string)
+  default     = []
+  description = <<EOF
+List of AWS Account IDs should be allowed to deliver access logs to this bucket.
+
+  access_log_delivery_policy_source_buckets = [
+    "111122223333",
+    "444455556666"
+  ]
+EOF
+}
+
+
 variable "attach_custom_policy" {
   type = bool
   default = false
