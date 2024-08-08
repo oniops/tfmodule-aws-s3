@@ -5,14 +5,14 @@ locals {
   tags                      = var.context.tags
   bucket_name               = var.bucket != null ? var.bucket : format("%s-%s-s3", var.context.s3_bucket_prefix, var.bucket_name)
   bucket_simple_name        = var.bucket_name != null ? var.bucket_name : trimsuffix(trimprefix(var.bucket, "${var.context.s3_bucket_prefix}-"), "-s3")
-  enabled_s3_bucket_logging = var.create_bucket && length(var.s3_logs_bucket) > 1 ? true : false
-  enabled_object_lock       = var.create_bucket && var.object_lock_enabled ? true : false
+  enabled_s3_bucket_logging = var.create && length(var.s3_logs_bucket) > 1 ? true : false
+  enabled_object_lock       = var.create && var.object_lock_enabled ? true : false
 }
 
 data "aws_canonical_user_id" "current" {}
 
 resource "aws_s3_bucket" "this" {
-  count  = var.create_bucket ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = local.bucket_name
 
   object_lock_enabled = var.object_lock_enabled
@@ -45,7 +45,7 @@ resource "aws_s3_bucket" "this" {
 
 # Block public access settings
 resource "aws_s3_bucket_public_access_block" "this" {
-  count  = var.create_bucket ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = try(aws_s3_bucket.this[0].id, "")
 
   block_public_acls       = var.block_public_acls
@@ -56,7 +56,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 
 # Bucket acl
 resource "aws_s3_bucket_acl" "this" {
-  count = !var.create_bucket || var.object_ownership == "BucketOwnerEnforced"  ? 0 : 1
+  count = !var.create || var.object_ownership == "BucketOwnerEnforced"  ? 0 : 1
 
   bucket = try(aws_s3_bucket.this[0].id, "")
   # expected_bucket_owner = aws_account_id
@@ -110,7 +110,7 @@ resource "aws_s3_bucket_acl" "this" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
-  count  = var.create_bucket ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = try(aws_s3_bucket.this[0].id, "")
 
   rule {

@@ -4,7 +4,7 @@ locals {
     mfa_delete = "Disabled"
   } : {}
 
-  enabled_versioning = var.create_bucket && length(local.versioning) > 0 ? true : false
+  enabled_versioning = var.create && length(local.versioning) > 0 ? true : false
 }
 
 resource "aws_s3_bucket_versioning" "this" {

@@ -8,7 +8,7 @@ locals {
 
 
 data "aws_iam_policy_document" "pols" {
-  count = var.create_bucket && local.attach_policy ? 1 : 0
+  count = var.create && local.attach_policy ? 1 : 0
 
   source_policy_documents = compact([
       var.attach_deny_insecure_transport_policy ? local.policy_deny_insecure_transport : "",
@@ -27,7 +27,7 @@ data "aws_iam_policy_document" "pols" {
 }
 
 resource "aws_s3_bucket_policy" "this" {
-  count = var.create_bucket && local.attach_policy ? 1 : 0
+  count = var.create && local.attach_policy ? 1 : 0
 
   # Chain resources (s3_bucket -> s3_bucket_public_access_block -> s3_bucket_policy )
   # to prevent "A conflicting conditional operation is currently in progress against this resource."

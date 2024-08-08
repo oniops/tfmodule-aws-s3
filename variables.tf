@@ -1,4 +1,4 @@
-variable "create_bucket" {
+variable "create" {
   type    = bool
   default = true
 }
@@ -292,7 +292,6 @@ Configuration for S3 bucket replication.
           }
         ]
       }
-
 EOF
 
 }

@@ -1,6 +1,6 @@
 locals {
 
-  policy_deny_incorrect_encryption = jsonencode({
+  policy_deny_incorrect_encryption = var.create ? jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -19,6 +19,6 @@ locals {
         }
       },
     ]
-  })
+  }) : ""
 
 }

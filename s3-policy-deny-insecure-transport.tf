@@ -1,6 +1,6 @@
 locals {
 
-  policy_deny_insecure_transport = jsonencode(
+  policy_deny_insecure_transport = var.create ? jsonencode(
     {
       Version = "2012-10-17"
       Statement = [
@@ -21,6 +21,6 @@ locals {
         }
       ]
     }
-  )
+  ) : ""
 
 }

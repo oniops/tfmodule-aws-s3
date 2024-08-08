@@ -4,7 +4,7 @@ locals {
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
-  count  = var.create_bucket ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = aws_s3_bucket.this[0].bucket
 
   expected_bucket_owner = var.expected_bucket_owner

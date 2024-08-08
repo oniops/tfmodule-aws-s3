@@ -1,5 +1,5 @@
 locals {
-  policy_allow_lb_log_delivery = jsonencode({
+  policy_allow_lb_log_delivery = var.create ? jsonencode({
     "Version": "2012-10-17",
     "Statement": [
       {
@@ -40,5 +40,5 @@ locals {
         }
       }
     ]
-  })
+  }) : ""
 }

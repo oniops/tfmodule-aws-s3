@@ -1,12 +1,12 @@
 locals {
-  policy_allow_access_log_delivery = try(data.aws_iam_policy_document.access_log_delivery[0].json, "")
+  policy_allow_access_log_delivery = var.create ? try(data.aws_iam_policy_document.access_log_delivery[0].json, "") : ""
 }
 
 # Grant access to S3 log delivery group for server access logging
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-ownership-migrating-acls-prerequisites.html#object-ownership-server-access-logs
 # https://docs.aws.amazon.com/AmazonS3/latest/userguide/enable-server-access-logging.html#grant-log-delivery-permissions-general
 data "aws_iam_policy_document" "access_log_delivery" {
-  count = var.create_bucket && var.attach_access_log_delivery_policy ? 1 : 0
+  count = var.create && var.attach_access_log_delivery_policy ? 1 : 0
 
   statement {
     sid = "AWSAccessLogDeliveryWrite"

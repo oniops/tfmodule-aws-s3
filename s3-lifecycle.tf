@@ -1,5 +1,5 @@
 resource "aws_s3_bucket_lifecycle_configuration" "this" {
-  count = var.create_bucket && var.enable_bucket_lifecycle && var.lifecycle_rules != null ? 1 : 0
+  count = var.create && var.enable_bucket_lifecycle && var.lifecycle_rules != null ? 1 : 0
 
   bucket = aws_s3_bucket.this[0].bucket
 
