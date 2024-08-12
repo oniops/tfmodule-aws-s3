@@ -94,6 +94,12 @@ variable "s3_logs_bucket" {
   default     = ""
 }
 
+variable "s3_logs_prefix" {
+  description = "The ID of the bucket where you want Amazon S3 to store server access logs."
+  type        = string
+  default     = null
+}
+
 variable "object_lock_enabled" {
   description = "Indicates whether this bucket has an Object Lock configuration enabled."
   type        = bool
@@ -324,6 +330,12 @@ variable "attach_deny_incorrect_encryption_headers" {
 
 variable "attach_access_log_delivery_policy" {
   description = "Controls if S3 bucket should have S3 access log delivery policy attached"
+  type        = bool
+  default     = false
+}
+
+variable "attach_elb_log_delivery_policy" {
+  description = "Controls if S3 bucket should have ELB log delivery policy attached"
   type        = bool
   default     = false
 }
