@@ -11,7 +11,8 @@ locals {
   ])
 }
 
-data "aws_iam_policy_document" "trust" {
+data "aws_iam_policy_document" "trustReplica" {
+  count              = local.create_replication_role ? 1 : 0
   statement {
     sid     = "AllowPrimaryToAssumeServiceRole"
     effect  = "Allow"
@@ -31,7 +32,7 @@ data "aws_iam_policy_document" "trust" {
 resource "aws_iam_role" "replica" {
   count              = local.create_replication_role ? 1 : 0
   name               = local.replica_role_name
-  assume_role_policy = data.aws_iam_policy_document.trust.json
+  assume_role_policy = data.aws_iam_policy_document.trustReplica[0].json
   tags               = {
     Name = local.replica_role_name
   }
