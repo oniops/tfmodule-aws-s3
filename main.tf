@@ -9,7 +9,9 @@ locals {
   enabled_object_lock       = var.create && var.object_lock_enabled ? true : false
 }
 
-data "aws_canonical_user_id" "current" {}
+data "aws_canonical_user_id" "current" {
+  count = var.create ? 1 : 0
+}
 
 resource "aws_s3_bucket" "this" {
   count  = var.create ? 1 : 0
@@ -67,7 +69,7 @@ resource "aws_s3_bucket_acl" "this" {
 
     grant {
       grantee {
-        id   = data.aws_canonical_user_id.current.id
+        id   = data.aws_canonical_user_id.current[0].id
         type = "CanonicalUser"
       }
       permission = "FULL_CONTROL"
@@ -98,7 +100,7 @@ resource "aws_s3_bucket_acl" "this" {
     #  }
 
     owner {
-      id = data.aws_canonical_user_id.current.id
+      id = data.aws_canonical_user_id.current[0].id
     }
 
   }
