@@ -1,6 +1,6 @@
 locals {
   # Must have bucket versioning enabled first
-  bucket_versioning_status = try(aws_s3_bucket_versioning.this[0].versioning_configuration.*.status[0], null)
+  bucket_versioning_status = var.bucket_versioning_status
   enable_versioning_status = try(lower(local.bucket_versioning_status), "") == "enabled" ? true : false
   replication_rules        = flatten(try([var.replication_rules], []))
   enabled_replication      = var.enable_replication && local.enable_versioning_status

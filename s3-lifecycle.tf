@@ -74,6 +74,34 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         }
       }
 
+
+      # for versioning enabled.
+      dynamic "noncurrent_version_transition" {
+        for_each = try(rule.value.noncurrent_version_glacier_days, 0) > 0 ? [true] : []
+        content {
+          storage_class   = "GLACIER"
+          noncurrent_days = try(rule.value.noncurrent_version_glacier_days, 730)
+        }
+      }
+
+      dynamic "noncurrent_version_transition" {
+        for_each = try(rule.value.noncurrent_version_deep_archive_days, 0) > 0 ? [true] : []
+        content {
+          storage_class   = "DEEP_ARCHIVE"
+          noncurrent_days = try(rule.value.noncurrent_version_deep_archive_days, 730)
+        }
+      }
+
+      # Max 1 block - noncurrent_version_expiration
+      dynamic "noncurrent_version_expiration" {
+        for_each = try(flatten([rule.value.noncurrent_version_expiration]), [])
+
+        content {
+          # newer_noncurrent_versions = try(noncurrent_version_expiration.value.newer_noncurrent_versions, null)
+          noncurrent_days  = try(rule.value.noncurrent_version_expiration_days, 730)
+        }
+      }
+
     }
   }
 

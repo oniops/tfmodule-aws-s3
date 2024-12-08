@@ -187,12 +187,12 @@ variable "lifecycle_rules" {
         ]
       }
 
-    - base on object's prefix
-      filter = {
-        prefix = "logs"
-        object_size_greater_than = 500    # (Optional) Minimum object size (in bytes) to which the rule applies.
-        object_size_less_than = 50        # (Optional) Maximum object size (in bytes) to which the rule applies.
-      }
+    # base on object's prefix
+    filter = {
+      prefix = "logs"
+      object_size_greater_than = 500    # (Optional) Minimum object size (in bytes) to which the rule applies.
+      object_size_less_than = 50        # (Optional) Maximum object size (in bytes) to which the rule applies.
+    }
 
     # rendering sample
     filter {
@@ -204,6 +204,20 @@ variable "lifecycle_rules" {
         }
       }
     }
+
+  ----- versioning example -----
+  # must be enabled versioning first
+  lifecycle_rules = [
+    {
+      id                                   = "default-rule"
+      status                               = "Enabled"
+      deep_archive_days                    = 180
+      expiration_days                      = 730
+      noncurrent_version_deep_archive_days = 90
+      noncurrent_version_expiration_days   = 730
+    }
+  ]
+
 EOF
 }
 
@@ -231,6 +245,14 @@ EOF
 variable "enable_replication" {
   type    = bool
   default = false
+}
+
+variable "bucket_versioning_status" {
+  type    = string
+  default = ""
+  description = <<EOF
+  bucket_versioning_status = try(aws_s3_bucket_versioning.this.versioning_configuration.*.status[0], null)
+EOF
 }
 
 variable "replication_role_arn" {
