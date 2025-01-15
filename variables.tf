@@ -390,10 +390,39 @@ EOF
 
 
 variable "attach_custom_policy" {
-  type = bool
-  default = false
-}
+  type = string
+  default = null
+  description = <<EOF
+A valid bucket policy JSON document.
 
+  attach_custom_policy = jsonencode({
+    Version : "2012-10-17"
+    Statement : [
+      {
+        "Sid" : "AllowCloudFrontDistributeForWhiteLabel",
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "cloudfront.amazonaws.com"
+        },
+        "Action" : "s3:GetObject",
+        "Resource" : "arn:aws:s3:::dev-an2d-platform-wl-brandsite-s3/*",
+        "Condition" : {
+          "ArnLike" : {
+            "aws:SourceArn" : "arn:aws:cloudfront::370166107047:distribution/*"
+          }
+        }
+      }
+    ]
+  })
+
+  or
+
+  data "aws_iam_policy_document" "custom" { ... }
+
+  attach_custom_policy = data.aws_iam_policy_document.custom.json
+
+EOF
+}
 variable "custom_policy" {
   type        = string
   default     = null
