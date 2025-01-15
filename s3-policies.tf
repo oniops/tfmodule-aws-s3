@@ -1,10 +1,10 @@
 locals {
-  attach_policy = var.attach_deny_insecure_transport_policy || var.attach_deny_incorrect_encryption_headers || var.attach_lb_log_delivery_policy || var.attach_access_log_delivery_policy || var.attach_custom_policy
+  add_custom_policy = var.attach_custom_policy != null
+  attach_policy = var.attach_deny_insecure_transport_policy || var.attach_deny_incorrect_encryption_headers || var.attach_lb_log_delivery_policy || var.attach_access_log_delivery_policy || local.add_custom_policy
   #  || var.attach_require_latest_tls_policy
   #  || var.attach_inventory_destination_policy
   #  || var.attach_deny_incorrect_kms_key_sse
   #  || var.attach_deny_unencrypted_object_uploads
-  add_custom_policy = var.attach_custom_policy != null
 }
 
 
