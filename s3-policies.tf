@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "pols" {
       var.attach_lb_log_delivery_policy ? local.policy_allow_lb_log_delivery : "",
       var.attach_access_log_delivery_policy ? local.policy_allow_access_log_delivery : "",
       var.attach_elb_log_delivery_policy ? local.policy_allow_elb_log_delivery : "",
-      local.add_custom_policy ? var.custom_policy : "",
+      local.add_custom_policy ? var.attach_custom_policy : "",
     #    var.attach_lb_log_delivery_policy ? data.aws_iam_policy_document.lb_log_delivery[0].json : "",
     #    var.attach_access_log_delivery_policy ? data.aws_iam_policy_document.access_log_delivery[0].json : "",
     #    var.attach_require_latest_tls_policy ? data.aws_iam_policy_document.require_latest_tls[0].json : "",

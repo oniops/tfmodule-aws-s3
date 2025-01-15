@@ -423,20 +423,3 @@ A valid bucket policy JSON document.
 
 EOF
 }
-variable "custom_policy" {
-  type        = string
-  default     = null
-  description = <<EOF
-A valid bucket policy JSON document.
-
-  data "aws_iam_policy_document" "custom" { ... }
-
-  custom_policy = data.aws_iam_policy_document.custom.json
-
-EOF
-}
-
-variable "source_vpce" {
-  type = string
-  default = ""
-}
