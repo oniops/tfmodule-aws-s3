@@ -227,8 +227,8 @@ variable "enable_versioning" {
 }
 
 variable "versioning" {
-  type        = map(string)
-  default     = {}
+  type = map(string)
+  default = {}
   description = <<EOF
 Enable versioning state of the bucket
 
@@ -248,8 +248,8 @@ variable "enable_replication" {
 }
 
 variable "bucket_versioning_status" {
-  type    = string
-  default = ""
+  type        = string
+  default     = ""
   description = <<EOF
   bucket_versioning_status = try(aws_s3_bucket_versioning.this.versioning_configuration.*.status[0], null)
 EOF
@@ -334,7 +334,7 @@ variable "replication_report_bucket_arn" {
 # S3 bucket policies
 ################################################################################
 variable "attach_deny_insecure_transport_policy" {
-  type = bool
+  type    = bool
   default = false
 }
 
@@ -363,8 +363,8 @@ variable "attach_elb_log_delivery_policy" {
 }
 
 variable "access_log_delivery_policy_source_buckets" {
-  type        = list(string)
-  default     = []
+  type = list(string)
+  default = []
   description = <<EOF
 List of S3 bucket ARNs which should be allowed to deliver access logs to this bucket.
 
@@ -376,8 +376,8 @@ EOF
 }
 
 variable "access_log_delivery_policy_source_accounts" {
-  type        = list(string)
-  default     = []
+  type = list(string)
+  default = []
   description = <<EOF
 List of AWS Account IDs should be allowed to deliver access logs to this bucket.
 
@@ -390,8 +390,8 @@ EOF
 
 
 variable "attach_custom_policy" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = <<EOF
 A valid bucket policy JSON document.
 
@@ -422,4 +422,10 @@ A valid bucket policy JSON document.
   attach_custom_policy = data.aws_iam_policy_document.custom.json
 
 EOF
+}
+
+variable "transition_default_minimum_object_size" {
+  type        = string
+  description = "(Optional) The default minimum object size behavior applied to the lifecycle configuration. Valid values: all_storage_classes_128K (default), varies_by_storage_class. To customize the minimum object size for any transition you can add a filter that specifies a custom object_size_greater_than or object_size_less_than value. Custom filters always take precedence over the default transition behavior."
+  default     = "all_storage_classes_128K"
 }

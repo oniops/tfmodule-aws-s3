@@ -35,5 +35,5 @@ output "enable_versioning_status" {
 }
 
 output "bucket_policy" {
-  value = try(data.aws_iam_policy_document.pols[0].json, "")
+  value = local.pols
 }

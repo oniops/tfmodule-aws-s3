@@ -1,26 +1,5 @@
 locals {
-
-  policy_deny_insecure_transport = var.create ? jsonencode(
-    {
-      Version = "2012-10-17"
-      Statement = [
-        {
-          "Sid" : "denyInsecureTransport",
-          "Effect" : "Deny",
-          "Principal" : "*",
-          "Action" : "s3:*",
-          "Resource" : [
-            aws_s3_bucket.this[0].arn,
-            "${aws_s3_bucket.this[0].arn}/*"
-          ],
-          "Condition" : {
-            "Bool" : {
-              "aws:SecureTransport" : "false"
-            }
-          }
-        }
-      ]
-    }
-  ) : ""
-
+  policy_deny_insecure_transport = var.create ? templatefile("${path.module}/templates/s3-policy-deny-insecure-transport.tpl", {
+      bucket_arn = aws_s3_bucket.this[0].arn
+    }) : ""
 }

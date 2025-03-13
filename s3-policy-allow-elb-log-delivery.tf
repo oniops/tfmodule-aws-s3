@@ -13,7 +13,6 @@ locals {
     ap-northeast-3 = "383597477331"
     ap-southeast-1 = "114774131450"
     ap-southeast-2 = "783225319266"
-    ap-southeast-3 = "589379963580"
     ca-central-1   = "985666609251"
     eu-central-1   = "054676820928"
     eu-west-1      = "156460612806"
@@ -31,36 +30,10 @@ locals {
 
   elb_service_account = lookup(local.elb_service_accounts, local.region, null)
 
-  policy_allow_elb_log_delivery_source = {
-    Statement = [
-      {
-        Action = "s3:PutObject"
-        Effect = "Allow"
-        Principal = {
-          Service = "logdelivery.elasticloadbalancing.amazonaws.com"
-        }
-        Resource = "arn:aws:s3:::${local.bucket_name}/*"
-        Sid      = "AllowELBLogWrite"
-      },
-    ]
-    Version = "2012-10-17"
-  }
-
-  before_2022_policy = var.attach_elb_log_delivery_policy && (local.elb_service_account != null) ? [
-    {
-      Action = "s3:PutObject"
-      Effect = "Allow"
-      Principal = {
-        AWS = "arn:aws:iam::${local.elb_service_account}:root"
-      }
-      Resource = "arn:aws:s3:::${local.bucket_name}/*"
-      Sid      = "AllowELBLogWriteRegion${title(local.region)}"
-    }
-  ] : null
-
-  policy_allow_elb_log_delivery = local.before_2022_policy == null ? jsonencode(local.policy_allow_elb_log_delivery_source) : jsonencode({
-    Statement = concat(local.policy_allow_elb_log_delivery_source.Statement, local.before_2022_policy)
-    Version = local.policy_allow_elb_log_delivery_source.Version
-  })
-
+  policy_allow_elb_log_delivery = var.create ? templatefile("${path.module}/templates/s3-policy-allow-elb-log-delivery.tpl", {
+      bucket_name                    = local.bucket_name
+      region                         = title(local.region)
+      attach_elb_log_delivery_policy = var.attach_elb_log_delivery_policy
+      elb_service_account            = local.elb_service_account
+    }) : ""
 }
