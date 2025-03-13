@@ -1,6 +1,6 @@
 locals {
-  replica_role_name   = "${var.context.project}${replace(title(local.bucket_simple_name), "-", "")}S3CrrRole"
-  replica_policy_name = "${var.context.project}${replace(title(local.bucket_simple_name), "-", "")}S3CrrPolicy"
+  replica_role_name   = "${local.project}${replace(title(local.bucket_simple_name), "-", "")}S3CrrRole"
+  replica_policy_name = "${local.project}${replace(title(local.bucket_simple_name), "-", "")}S3CrrPolicy"
   s3_origion_arn = try(aws_s3_bucket.this[0].arn, "")
   s3_destination_bucket_arns = try(distinct(flatten([
     for rule in var.replication_rules :[rule.destination.bucket, "${rule.destination.bucket}/*"]
