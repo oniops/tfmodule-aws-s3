@@ -6,7 +6,7 @@
             "Service": "logging.s3.amazonaws.com"
         },
         "Action": "s3:PutObject",
-        "Resource": "${bucket_arn}/*"%{ if length(access_log_delivery_policy_source_buckets) > 0 || length(access_log_delivery_policy_source_accounts) > 0 },
+        "Resource": "${bucket_arn}/*",
         "Condition": {
             %{ if length(access_log_delivery_policy_source_buckets) != 0 }
             "ArnLike": {
@@ -19,7 +19,6 @@
             }
             %{ endif }
         }
-        %{ endif }
     },
     {
         "Sid": "AWSAccessLogDeliveryAclCheck",
