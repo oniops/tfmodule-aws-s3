@@ -10,7 +10,9 @@
         "Resource": "${bucket_arn}/*",
         "Condition": {
             "StringEquals": {
-                "aws:SourceVpce": ${source_vpce}
+                "aws:SourceVpce": [
+                  "${source_vpce}"
+                ]
             }
         }
     }
