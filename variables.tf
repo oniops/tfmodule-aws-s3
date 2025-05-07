@@ -378,7 +378,7 @@ EOF
 variable "access_log_delivery_policy_source_accounts" {
   type = list(string)
   default = []
-  description = <<EOF
+  description = <<-EOF
 List of AWS Account IDs should be allowed to deliver access logs to this bucket.
 
   access_log_delivery_policy_source_buckets = [
@@ -388,6 +388,23 @@ List of AWS Account IDs should be allowed to deliver access logs to this bucket.
 EOF
 }
 
+variable "cloudfront_distributions_arn" {
+  type    = list(string)
+  default = []
+  description = <<-EOF
+List of AWS Cloudfront OAC(Origin Access Control) IDs should be allowed to access this bucket.
+
+  cloudfront_distributions_arn = [
+    "arn:aws:cloudfront::111122223333:distribution/A1B3CD6EFGBWM"
+  ]
+EOF
+}
+
+variable "source_vpce" {
+  description = "Source VPC endpoint for accessing S3 bucket."
+  type        = string
+  default     = null
+}
 
 variable "attach_custom_policy" {
   type        = string
