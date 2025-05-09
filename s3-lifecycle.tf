@@ -13,6 +13,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       dynamic "filter" {
         for_each = length(try(flatten([rule.value.filter]), [])) == 0 ? [true] : []
         content {
+          prefix = ""
         }
       }
 
