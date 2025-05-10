@@ -362,6 +362,12 @@ variable "attach_elb_log_delivery_policy" {
   default     = false
 }
 
+variable "attach_aws_inspector_report_policy" {
+  description = "Controls if S3 bucket should have AWS Inspector Report policy attached"
+  type        = bool
+  default     = false
+}
+
 variable "access_log_delivery_policy_source_buckets" {
   type = list(string)
   default = []

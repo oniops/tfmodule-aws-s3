@@ -2,8 +2,11 @@ locals {
   add_custom_policy         = var.attach_custom_policy != null
   add_vpce_policy           = var.source_vpce != null
   add_cloudfront_oac_policy = length(var.cloudfront_distributions_arn) > 0
-  attach_policy             = (var.attach_deny_insecure_transport_policy || var.attach_deny_incorrect_encryption_headers || var.attach_lb_log_delivery_policy
-  || var.attach_access_log_delivery_policy || local.add_cloudfront_oac_policy || local.add_vpce_policy  || local.add_custom_policy)
+  attach_policy             = (
+    var.attach_deny_insecure_transport_policy || var.attach_deny_incorrect_encryption_headers || var.attach_lb_log_delivery_policy
+    || var.attach_access_log_delivery_policy || local.add_cloudfront_oac_policy || local.add_vpce_policy  || local.add_custom_policy
+    || var.attach_aws_inspector_report_policy
+  )
   #  || var.attach_require_latest_tls_policy
   #  || var.attach_inventory_destination_policy
   #  || var.attach_deny_incorrect_kms_key_sse
@@ -17,6 +20,7 @@ locals {
         var.attach_lb_log_delivery_policy ? tolist(jsondecode(local.policy_allow_lb_log_delivery)) : [],
         var.attach_access_log_delivery_policy ? tolist(jsondecode(local.policy_allow_access_log_delivery)) : [],
         var.attach_elb_log_delivery_policy ? tolist(jsondecode(local.policy_allow_elb_log_delivery)) : [],
+        var.attach_aws_inspector_report_policy ? tolist(jsondecode(local.policy_allow_aws_inspector)) : [],
         local.add_vpce_policy ? tolist(jsondecode(local.policy_allow_vpce)) : [],
         local.add_cloudfront_oac_policy ? tolist(jsondecode(local.policy_allow_cloudfront_oac)) : [],
         local.add_custom_policy ? tolist(jsondecode(var.attach_custom_policy)) : []
