@@ -46,10 +46,34 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       }
 
       dynamic "transition" {
-        for_each = try(rule.value.itl_tier_days, 0) > 0 ? [true] : []
+        for_each = try(rule.value.standard_ia_days, 0) > 0 ? [true] : []
+        content {
+          storage_class = "STANDARD_IA"
+          days = try(rule.value.standard_ia_days, 60)
+        }
+      }
+
+      dynamic "transition" {
+        for_each = try(rule.value.intelligent_tiering_days, 0) > 0 ? [true] : []
         content {
           storage_class = "INTELLIGENT_TIERING"
-          days = try(rule.value.itl_tier_days, 365)
+          days = try(rule.value.intelligent_tiering_days, 90)
+        }
+      }
+
+      dynamic "transition" {
+        for_each = try(rule.value.onezone_ia_days, 0) > 0 ? [true] : []
+        content {
+          storage_class = "ONEZONE_IA"
+          days = try(rule.value.onezone_ia_days, 120)
+        }
+      }
+
+      dynamic "transition" {
+        for_each = try(rule.value.glacier_ir_days, 0) > 0 ? [true] : []
+        content {
+          storage_class = "GLACIER_IR"
+          days = try(rule.value.glacier_ir_days, 180)
         }
       }
 

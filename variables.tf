@@ -148,12 +148,15 @@ variable "lifecycle_rules" {
       }
     },
     {
-      id                = "seconds-rule"
-      status            = "Enabled"
-      itl_tier_days     = 90
-      glacier_days      = 180
-      deep_archive_days = 365
-      expiration_days   = 730
+      id                        = "seconds-rule"
+      status                    = "Enabled"
+      standard_ia_days          = 60
+      intelligent_tiering_days  = 90
+      onezone_ia_days           = 120
+      glacier_ir_days           = 180
+      glacier_days              = 365
+      deep_archive_days         = 730
+      expiration_days           = 1095
       filter          = {
         prefix = "second/"
       }
@@ -211,7 +214,8 @@ variable "lifecycle_rules" {
     {
       id                                   = "default-rule"
       status                               = "Enabled"
-      deep_archive_days                    = 180
+      glacier_days                         = 180
+      deep_archive_days                    = 365
       expiration_days                      = 730
       noncurrent_version_deep_archive_days = 90
       noncurrent_version_expiration_days   = 730
@@ -395,7 +399,7 @@ EOF
 }
 
 variable "cloudfront_distributions_arn" {
-  type    = list(string)
+  type = list(string)
   default = []
   description = <<-EOF
 List of AWS Cloudfront OAC(Origin Access Control) IDs should be allowed to access this bucket.
@@ -418,31 +422,22 @@ variable "attach_custom_policy" {
   description = <<EOF
 A valid bucket policy JSON document.
 
-  attach_custom_policy = jsonencode({
-    Version : "2012-10-17"
-    Statement : [
-      {
-        "Sid" : "AllowCloudFrontDistributeForWhiteLabel",
-        "Effect" : "Allow",
-        "Principal" : {
-          "Service" : "cloudfront.amazonaws.com"
-        },
-        "Action" : "s3:GetObject",
-        "Resource" : "arn:aws:s3:::dev-an2d-platform-wl-brandsite-s3/*",
-        "Condition" : {
-          "ArnLike" : {
-            "aws:SourceArn" : "arn:aws:cloudfront::370166107047:distribution/*"
-          }
+  attach_custom_policy = [
+    {
+      "Sid" : "AllowCloudFrontDistributeForWhiteLabel",
+      "Effect" : "Allow",
+      "Principal" : {
+        "Service" : "cloudfront.amazonaws.com"
+      },
+      "Action" : "s3:GetObject",
+      "Resource" : "arn:aws:s3:::dev-an2d-platform-wl-brandsite-s3/*",
+      "Condition" : {
+        "ArnLike" : {
+          "aws:SourceArn" : "arn:aws:cloudfront::370166107047:distribution/*"
         }
       }
-    ]
-  })
-
-  or
-
-  data "aws_iam_policy_document" "custom" { ... }
-
-  attach_custom_policy = data.aws_iam_policy_document.custom.json
+    }
+  ]
 
 EOF
 }
