@@ -13,78 +13,71 @@ module "ctx" {
   }
 }
 
-module "targetFirst" {
-  source    = "../../"
+module "target" {
+  source = "../../"
   providers = {
     aws = aws.replica
   }
   context           = module.ctx.context
-  bucket_name       = "ex04-multiple-replica-first-target"
-  object_ownership  = "ObjectWriter"
-  enable_versioning = true
-  force_destroy     = true
-}
-
-module "targetSecond" {
-  source    = "../../"
-  providers = {
-    aws = aws.replica
-  }
-  context           = module.ctx.context
-  bucket_name       = "ex04-multiple-replica-second-target"
+  bucket_name       = "ex03-replica-target"
   object_ownership  = "ObjectWriter"
   enable_versioning = true
   force_destroy     = true
 }
 
 module "source" {
-  source = "../../"
+  source            = "../../"
+  context           = module.ctx.context
+  bucket_name       = "ex03-replica-source"
+  object_ownership  = "ObjectWriter"
+  enable_versioning = true
+  force_destroy     = true
+}
 
+module "report" {
+  source           = "../../"
+  context          = module.ctx.context
+  bucket_name      = "ex03-replica-report"
+  object_ownership = "ObjectWriter"
+  force_destroy    = true
+}
+
+module "replica" {
+  source                  = "../../"
   context                 = module.ctx.context
-  bucket_name             = "ex04-multiple-replica-source"
+  bucket_name             = module.source.bucket_name
   object_ownership        = "ObjectWriter"
   sse_algorithm           = "aws:kms"
   kms_master_key_id       = data.aws_kms_alias.origin.target_key_arn
   bucket_key_enabled      = true
   enable_versioning       = true
   enable_bucket_lifecycle = false
-  lifecycle_rules         = [
+  lifecycle_rules = [
     {
       id              = "expire-one-year-rule"
       status          = "Enabled"
       expiration_days = 365
     }
   ]
-  enable_replication = true
-  replication_rules  = [
+  enable_replication            = true
+  replication_report_bucket_arn = module.report.bucket_arn
+  replication_rules = [
     {
-      id     = "first-rule"
-      status = true
-      filter = {
-        prefix = "first"
-      }
+      id                        = "default-rule"
+      status                    = true
+      delete_marker_replication = false
       destination = {
-        bucket             = module.targetFirst.bucket_arn
-        storage_class      = "STANDARD_IA"
+        bucket             = module.target.bucket_arn
+        storage_class      = "STANDARD" # "STANDARD_IA"
         replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
       }
-      source_selection_criteria = {
-        sse_kms_encrypted_objects = {
-          enabled = true
-        }
+      replication_time = {
+        status  = true
+        minutes = 15
       }
-    },
-    {
-      id       = "second-rule"
-      status   = true
-      priority = 10
-      filter   = {
-        prefix = "second"
-      }
-      destination = {
-        bucket             = module.targetSecond.bucket_arn
-        storage_class      = "STANDARD_IA"
-        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
+      metrics = {
+        status  = true
+        minutes = 15
       }
       source_selection_criteria = {
         sse_kms_encrypted_objects = {
@@ -97,8 +90,9 @@ module "source" {
   force_destroy = true
 
   depends_on = [
-    module.targetFirst,
-    module.targetSecond
+    module.source,
+    module.target,
+    module.report
   ]
 
 }

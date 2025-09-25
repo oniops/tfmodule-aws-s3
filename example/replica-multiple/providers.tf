@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.4.0"
+  required_version = ">= 1.5.0"
 
   required_providers {
     aws = {
@@ -11,16 +11,12 @@ terraform {
 
 # Refers to environment variables [AWS_PROFILE, AWS_REGION].
 provider "aws" {
-  region = local.context.region
-}
-
-locals {
-  replica_region = "ap-northeast-1"
+  region = module.ctx.region
 }
 
 provider "aws" {
   alias  = "replica"
-  region = local.replica_region
+  region =  "ap-northeast-1"
 
   # Make it faster by skipping something
   skip_metadata_api_check     = true

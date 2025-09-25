@@ -1,6 +1,5 @@
 terraform {
-  required_version = ">= 1.4.0"
-
+  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -11,11 +10,11 @@ terraform {
 
 # Refers to environment variables [AWS_PROFILE, AWS_REGION].
 provider "aws" {
-  region = local.context.region
+  region = module.ctx.region
 }
 
 locals {
-  replica_region = "ap-northeast-1"
+  replica_region = "ap-northeast-2"
 }
 
 provider "aws" {

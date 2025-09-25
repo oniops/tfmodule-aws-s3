@@ -1,28 +1,17 @@
 module "ctx" {
-  source  = "git::https://code.bespinglobal.com/scm/op/tfmodule-context.git"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
   context = {
-    aws_profile = ""
-    project     = "otcmp"
-    region      = "ap-northeast-1"
-    environment = "Testbed"
-    department  = "OpsNow"
-    owner       = "yoonsoo.chang@bespinglobal.com"
-    customer    = "OpsNow Test Company"
-    domain      = "opsnowtest.co.uk"
-    pri_domain  = "backend.opsnow.com"
-    cost_center = 1001
-    team        = "OpsNow"
+    project     = "demo"
+    region      = "ap-northeast-2"
+    environment = "PoC"
+    customer    = "My Customer"
+    department  = "DevOps"
+    team        = "DevOps"
+    owner       = "me@devopsdemo.io"
+    domain      = "devopsdemo.io"
+    pri_domain  = "devopsdemo.internal"
   }
 }
-
-locals {
-  project       = module.ctx.project
-  name_prefix   = module.ctx.name_prefix
-  bucket_prefix = "${local.project}-tbd"
-  tags          = module.ctx.tags
-  account       = "370166107047"
-}
-
 
 data "aws_iam_policy_document" "trail" {
   statement {
@@ -72,8 +61,9 @@ data "aws_iam_policy_document" "trail" {
 module "trail" {
   source              = "../../"
   context             = module.ctx.context
-  bucket              = format("%s-%s-s3", local.bucket_prefix, "cloudtrail")
+  bucket              = "central-cloudtrail"
   object_ownership    = "BucketOwnerPreferred"
+  attach_custom_policy = ""
   object_lock_enabled = true
 }
 
@@ -82,11 +72,11 @@ resource "aws_s3_bucket_policy" "policy" {
   policy = data.aws_iam_policy_document.trail.json
 }
 
-resource "aws_s3_bucket_versioning" "this" {
-  bucket = module.trail.bucket_id
-  versioning_configuration {
-    status     = "Enabled"
-    # mfa_delete = "Enabled" # Only available for ROOT account. just use CLI
-  }
-  expected_bucket_owner = local.account
-}
+# resource "aws_s3_bucket_versioning" "this" {
+#   bucket = module.trail.bucket_id
+#   versioning_configuration {
+#     status     = "Enabled"
+#     # mfa_delete = "Enabled" # Only available for ROOT account. just use CLI
+#   }
+#   expected_bucket_owner = local.account
+# }

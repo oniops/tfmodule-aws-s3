@@ -1,32 +1,28 @@
-locals {
-  bucket_name = "lifecycle"
-
+module "ctx" {
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
   context = {
-    project          = "demo"
-    region           = "ap-northeast-2"
-    environment      = "PoC"
-    team             = "DevOps"
-    name_prefix      = "demo-an2p"
-    s3_bucket_prefix = "demo-poc"
-    domain           = "demo.io"
-    pri_domain       = "demo.local"
-    tags             = {
-      Project = "demo"
-    }
+    project     = "demo"
+    region      = "ap-northeast-2"
+    environment = "PoC"
+    customer    = "My Customer"
+    department  = "DevOps"
+    team        = "DevOps"
+    owner       = "me@devopsdemo.io"
+    domain      = "devopsdemo.io"
+    pri_domain  = "devopsdemo.internal"
   }
 }
 
 module "s3Demo" {
-  source = "../../"
-
-  context                 = local.context
-  bucket_name             = local.bucket_name
+  source                  = "../../"
+  context                 = module.ctx.context
+  bucket_name             = "ex01-hello-lifecycle"
   object_ownership        = "ObjectWriter"
   sse_algorithm           = "aws:kms"
-  kms_master_key_id       = data.aws_kms_key.origin.arn
+  kms_master_key_id       = data.aws_kms_alias.origin.target_key_arn
   bucket_key_enabled      = true
   enable_bucket_lifecycle = true
-  lifecycle_rules         = [
+  lifecycle_rules = [
     {
       id     = "days-7-rule"
       status = "Enabled"
@@ -39,12 +35,12 @@ module "s3Demo" {
       id              = "days-30-rule"
       status          = "Enabled"
       expiration_days = 30
-      filter          = {
+      filter = {
         and = [
           {
             prefix = "logs/"
-            tags   = {
-              Porject     = "simple"
+            tags = {
+              Porject     = "demo"
               ProductType = "EC2"
             }
           }

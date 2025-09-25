@@ -430,10 +430,10 @@ A valid bucket policy JSON document.
         "Service" : "cloudfront.amazonaws.com"
       },
       "Action" : "s3:GetObject",
-      "Resource" : "arn:aws:s3:::dev-an2d-platform-wl-brandsite-s3/*",
+      "Resource" : "arn:aws:s3:::demo-an2d-example1022-s3/*",
       "Condition" : {
         "ArnLike" : {
-          "aws:SourceArn" : "arn:aws:cloudfront::370166107047:distribution/*"
+          "aws:SourceArn" : "arn:aws:cloudfront::111122223333:distribution/*"
         }
       }
     }
