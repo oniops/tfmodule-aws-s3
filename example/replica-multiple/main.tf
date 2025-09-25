@@ -19,7 +19,7 @@ module "targetFirst" {
     aws = aws.replica
   }
   context           = module.ctx.context
-  bucket_name       = "ex04-multiple-replica-first-target"
+  bucket_name       = "exr301-multiple-replica-first-target"
   object_ownership  = "ObjectWriter"
   enable_versioning = true
   force_destroy     = true
@@ -31,65 +31,55 @@ module "targetSecond" {
     aws = aws.replica
   }
   context           = module.ctx.context
-  bucket_name       = "ex04-multiple-replica-second-target"
+  bucket_name       = "exr301-multiple-replica-second-target"
   object_ownership  = "ObjectWriter"
   enable_versioning = true
   force_destroy     = true
 }
 
+# `/first`는 exr301-multiple-replica-first-target 버킷으로 복제하고 `second/`는 exr301-multiple-replica-second-target 버킷으로 복제 합니다.
 module "source" {
   source = "../../"
 
   context                 = module.ctx.context
-  bucket_name             = "ex04-multiple-replica-source"
+  bucket_name             = "exr301-multiple-replica-source"
   object_ownership        = "ObjectWriter"
   sse_algorithm           = "aws:kms"
   kms_master_key_id       = data.aws_kms_alias.origin.target_key_arn
   bucket_key_enabled      = true
   enable_versioning       = true
-  enable_bucket_lifecycle = false
-  lifecycle_rules         = [
-    {
-      id              = "expire-one-year-rule"
-      status          = "Enabled"
-      expiration_days = 365
-    }
-  ]
   enable_replication = true
   replication_rules  = [
     {
       id     = "first-rule"
       status = true
+
       filter = {
-        prefix = "first"
+        prefix = "first/"
       }
+
       destination = {
         bucket             = module.targetFirst.bucket_arn
-        storage_class      = "STANDARD_IA"
-        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
-      }
-      source_selection_criteria = {
-        sse_kms_encrypted_objects = {
-          enabled = true
-        }
       }
     },
     {
       id       = "second-rule"
       status   = true
       priority = 10
+      
       filter   = {
-        prefix = "second"
+        prefix = "second/"
       }
-      destination = {
-        bucket             = module.targetSecond.bucket_arn
-        storage_class      = "STANDARD_IA"
-        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
-      }
+      
       source_selection_criteria = {
         sse_kms_encrypted_objects = {
           enabled = true
         }
+      }
+      
+      destination = {
+        bucket             = module.targetSecond.bucket_arn
+        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
       }
     }
   ]

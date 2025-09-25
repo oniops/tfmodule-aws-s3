@@ -13,45 +13,35 @@ module "ctx" {
   }
 }
 
- module "target" {
+module "target" {
   source = "../../"
   providers = {
     aws = aws.replica
   }
   context           = module.ctx.context
-  bucket_name       = "ex02-hello-replica-target"
+  bucket_name       = "exr101-basic-replica-target"
   object_ownership  = "ObjectWriter"
   enable_versioning = true
   force_destroy     = true
 }
 
+# 모든 객체를 복제 합니다.
 module "source" {
   source             = "../../"
   context            = module.ctx.context
-  bucket_name        = "ex02-hello-replica-soruce"
+  bucket_name        = "exr101-basic-replica-source"
   object_ownership   = "ObjectWriter"
-  sse_algorithm      = "aws:kms"
-  kms_master_key_id  = data.aws_kms_alias.origin.target_key_arn
-  bucket_key_enabled = true
+  bucket_key_enabled = false
   enable_versioning  = true
   enable_replication = true
   replication_rules = [
     {
-      id                        = "default-replica-rule"
+      id                        = "basic-replica-rule"
       status                    = true
       delete_marker_replication = false
       destination = {
-        bucket             = module.target.bucket_arn
-        storage_class      = "STANDARD" # "STANDARD_IA"
-        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
+        bucket        = module.target.bucket_arn
       }
-
-      source_selection_criteria = {
-        sse_kms_encrypted_objects = {
-          enabled = true
-        }
-      }
-
     }
   ]
   force_destroy = true

@@ -1,6 +1,6 @@
 locals {
   # Must have bucket versioning enabled first
-  bucket_versioning_status = var.bucket_versioning_status
+  bucket_versioning_status = var.bucket_versioning_status != "" ? var.bucket_versioning_status : try(aws_s3_bucket_versioning.this[0].versioning_configuration[0].status, var.enable_versioning ? "Enabled" : "")
   enable_versioning_status = try(lower(local.bucket_versioning_status), "") == "enabled" ? true : false
   replication_rules        = flatten(try([var.replication_rules], []))
   enabled_replication      = var.enable_replication && local.enable_versioning_status
@@ -25,6 +25,10 @@ resource "aws_s3_bucket_replication_configuration" "this" {
         status = try(tobool(rule.value.delete_marker_replication) ? "Enabled" : "Disabled", "Disabled")
       }
 
+      existing_object_replication {
+        status = try(tobool(rule.value.existing_object_replication) ? "Enabled" : "Disabled", "Disabled")
+      }
+      
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html
       dynamic "existing_object_replication" {
         for_each = try(rule.value.existing_object_replication, null) == null ? [] : [true]

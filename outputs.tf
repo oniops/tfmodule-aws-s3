@@ -37,3 +37,8 @@ output "enable_versioning_status" {
 output "bucket_policy" {
   value = local.pols
 }
+
+output "replication_role_arn" {
+  description = "ARN of the IAM role for S3 replication"
+  value       = local.create_replication_role ? aws_iam_role.replica[0].arn : var.replication_role_arn
+}

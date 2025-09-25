@@ -1,14 +1,19 @@
 variable "context" {
-  type = object({
-    project          = string
-    region           = string
-    account_id       = string
-    name_prefix      = string
-    s3_bucket_prefix = string
-    environment      = string
-    team             = string
-    domain           = string
-    pri_domain       = string
-    tags             = map(string)
-  })
+  type        = any
+  description = <<-EOF
+
+  ex)
+  context = {
+    project     = "demo"
+    region      = "ap-northeast-2"
+    environment = "PoC"
+    customer    = "My Customer"
+    department  = "DevOps"
+    team        = "DevOps"
+    owner       = "me@devopsdemo.io"
+    domain      = "devopsdemo.io"
+    pri_domain  = "devopsdemo.internal"
+  }
+EOF
+
 }

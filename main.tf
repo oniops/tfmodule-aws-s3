@@ -5,7 +5,7 @@ locals {
   tags                      = var.context.tags
   bucket_name               = var.bucket != null ? var.bucket : "${var.context.s3_bucket_prefix}-${var.bucket_name}-s3"
   bucket_simple_name        = var.bucket_name != null ? var.bucket_name : trimsuffix(trimprefix(var.bucket, "${var.context.s3_bucket_prefix}-"), "-s3")
-  enabled_s3_bucket_logging = var.create && length(var.s3_logs_bucket) > 1 ? true : false
+  enabled_s3_bucket_logging = var.create && var.s3_logs_bucket != ""
   enabled_object_lock       = var.create && var.object_lock_enabled ? true : false
 }
 

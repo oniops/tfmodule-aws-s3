@@ -52,8 +52,13 @@ variable "bucket_acl" {
 }
 
 variable "object_ownership" {
-  description = "Object ownership. Valid values: BucketOwnerPreferred, ObjectWriter or BucketOwnerEnforced"
   type        = string
+  description = "Object ownership. Valid values: BucketOwnerPreferred, ObjectWriter or BucketOwnerEnforced"
+  
+  validation {
+    condition = contains(["BucketOwnerPreferred", "ObjectWriter", "BucketOwnerEnforced"], var.object_ownership)
+    error_message = "object_ownership must be one of: BucketOwnerPreferred, ObjectWriter, BucketOwnerEnforced"
+  }
 }
 
 variable "expected_bucket_owner" {
@@ -271,23 +276,29 @@ variable "replication_rules" {
   description = <<EOF
 Configuration for S3 bucket replication.
 
-      id                          = "all"
-      status                      = true
-      priority                    = 0
+replication_rules = {
+  id                          = "all"
+  status                      = true
+  priority                    = 0
   replication_rules = [
     {
       id                          = "all"
       status                      = true
       delete_marker_replication   = true                          # delete_marker_replication attribute is mandatory because of using filter.
+      existing_object_replication = false                         # Whether the existing objects should be replicated.
       # Can't set following "existing_object_replication" attribute because AWS is not supported yet.
       # if set true, You have to add IAM polices for S3 BatchOperation
       # existing_object_replication = true
       destination                 = {
         bucket             = module.s3_example_clone.bucket_arn   # ARN of the bucket where you want Amazon S3 to store the results.
-        storage_class      = "STANDARD_IA"                        # see - https://docs.aws.amazon.com/AmazonS3/latest/API/API_Destination.html#AmazonS3-Type-Destination-StorageClass
+        storage_class      = null # STANDARD, STANDARD_IA, ...    # see - https://docs.aws.amazon.com/AmazonS3/latest/API/API_Destination.html#AmazonS3-Type-Destination-StorageClass
         replica_kms_key_id = data.aws_kms_key.replica.arn         # if set this value, You have to configure `source_selection_criteria.sse_kms_encrypted_objects`
       }
 
+      # sse_kms 키로 암호화된 객체만 복제를 함
+      # - file1.txt (SSE-KMS 암호화) → 복제됨
+      # - file2.txt (SSE-S3/AES256 암호화) → 복제 안됨
+      # - file3.txt (암호화 없음) → 복제 안됨
       source_selection_criteria = {
         sse_kms_encrypted_objects = {
           enabled = true
@@ -324,6 +335,9 @@ Configuration for S3 bucket replication.
           }
         ]
       }
+
+}
+
 EOF
 
 }

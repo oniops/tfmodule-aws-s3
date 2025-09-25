@@ -70,8 +70,10 @@ tfmodule-aws-s3/
     ├── cloudtrail/                            # CloudTrail 로그 버킷
     ├── lifecycle/                             # 라이프사이클 설정
     ├── replica-basic/                         # 기본 복제
-    ├── replica-existing-objects/              # 기존 객체 복제
-    └── replica-multiple/                      # 다중 복제 규칙
+    ├── replica-kms/                           # KMS 암호화 복제
+    ├── replica-multiple/                      # 다중 복제 규칙
+    ├── replica-reporting/                     # Batch Operations 복제
+    └── replica-bucket-exists/                 # 기존 버킷 활용
 ```
 
 ## 주요 기능
@@ -166,41 +168,54 @@ object_lock_mode    = "COMPLIANCE"
 object_lock_days    = 365
 ```
 
-### 3. 🔄 복제
+### 3. 🔄 복제 (Replication)
 
+S3 복제를 통해 버킷 간 자동 또는 수동으로 객체를 복사할 수 있습니다. Cross-Region 백업, 규정 준수, 성능 최적화 등 다양한 용도로 활용됩니다.
+
+#### 실시간 복제 (신규 객체)
 ```hcl
 enable_versioning  = true  # 필수
 enable_replication = true
 
 replication_rules = [
   {
-    id                        = "cross-region-backup"
+    id                        = "realtime-replication"
     status                    = true
-    priority                  = 1
-    delete_marker_replication = true
+    delete_marker_replication = false
 
     destination = {
-      bucket        = "arn:aws:s3:::backup-bucket"
-      storage_class = "GLACIER_IR"
-
-      # KMS 암호화된 객체 복제
-      replica_kms_key_id = aws_kms_key.replica.arn
+      bucket        = "arn:aws:s3:::target-bucket"
+      storage_class = "STANDARD_IA"  # null이면 원본과 동일
     }
 
-    # 필터
-    filter = {
-      prefix = "important/"
-    }
-
-    # KMS 암호화된 소스 객체 복제
-    source_selection_criteria = {
-      sse_kms_encrypted_objects = {
-        enabled = true
-      }
+    # 15분 내 복제 보장 (RTC)
+    replication_time = {
+      status  = true
+      minutes = 15
     }
   }
 ]
 ```
+
+#### Batch Operations (기존 객체)
+```hcl
+# 기존 객체 복제를 위한 리포트 버킷 설정
+replication_report_bucket_arn = "arn:aws:s3:::report-bucket"
+
+replication_rules = [
+  {
+    id                          = "batch-replication"
+    status                      = true
+    existing_object_replication = false  # Batch로 별도 처리
+
+    destination = {
+      bucket = "arn:aws:s3:::target-bucket"
+    }
+  }
+]
+```
+
+📖 **[S3 복제 완벽 가이드](./HELP-REPLICA.md)** - 복제 설정, Batch Operations, 예제 시나리오, 문제 해결 등 상세 정보
 
 ### 4. 📝 로깅
 
