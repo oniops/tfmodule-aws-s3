@@ -23,10 +23,10 @@ Amazon S3 버킷을 생성하는 테라폼 모듈입니다.
 ### 빠른 시작
 ```bash
 # 저장소 클론
-git clone https://github.com/your-org/tfmodule-aws-s3.git
+git clone https://github.com/oniops/tfmodule-aws-s3.git
 
 # 모듈 사용 예제
-cd example/lifecycle
+cd example/basic
 
 # Terraform 초기화
 terraform init
@@ -66,6 +66,7 @@ tfmodule-aws-s3/
 ├── s3-policy-deny-incorrect-encryption.tf     # 잘못된 암호화 차단
 │
 └── example/                                   # 사용 예제
+    ├── basic/                                 # Basic 버킷
     ├── cloudtrail/                            # CloudTrail 로그 버킷
     ├── lifecycle/                             # 라이프사이클 설정
     ├── replica-basic/                         # 기본 복제
@@ -255,25 +256,23 @@ attach_elb_log_delivery_policy = true
 ### 1. 기본 버킷 생성
 
 ```hcl
-module "simple_bucket" {
-  source = "git::https://github.com/your-org/tfmodule-aws-s3.git"
-
+# 컨텍스트 모듈 사용 (권장)
+module "ctx" {
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
   context = {
-    project          = "myproject"
-    region           = "ap-northeast-2"
-    account_id       = "123456789012"
-    name_prefix      = "dev"
-    s3_bucket_prefix = "myorg"
-    environment      = "development"
-    team             = "platform"
-    domain           = "example.com"
-    pri_domain       = "internal.example.com"
-    tags = {
-      Environment = "dev"
-      Team        = "platform"
-    }
+    project     = "myproject"
+    region      = "ap-northeast-2"
+    environment = "development"
+    team        = "platform"
+    domain      = "example.com"
+    pri_domain  = "internal.example.com"
   }
+}
 
+module "simple_bucket" {
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
+
+  context          = module.ctx.context
   bucket_name      = "application-data"
   object_ownership = "BucketOwnerEnforced"
 }
@@ -283,9 +282,9 @@ module "simple_bucket" {
 
 ```hcl
 module "secure_bucket" {
-  source = "./modules/tfmodule-aws-s3"
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
 
-  context          = local.context
+  context          = module.ctx.context
   bucket_name      = "sensitive-data"
   object_ownership = "BucketOwnerEnforced"
 
@@ -316,9 +315,9 @@ module "secure_bucket" {
 
 ```hcl
 module "log_bucket" {
-  source = "./modules/tfmodule-aws-s3"
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
 
-  context          = local.context
+  context          = module.ctx.context
   bucket_name      = "application-logs"
   object_ownership = "BucketOwnerPreferred"
 
@@ -348,30 +347,50 @@ module "log_bucket" {
 }
 ```
 
-### 4. 재해 복구를 위한 복제 설정
+### 4. Cross-Region 복제 설정 (KMS 암호화 포함)
 
 ```hcl
-# 대상 버킷 (다른 리전)
-module "replica_bucket" {
-  source = "./modules/tfmodule-aws-s3"
-  providers = {
-    aws = aws.dr_region
+# 컨텍스트 모듈 (tfmodule-context 사용)
+module "ctx" {
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  context = {
+    project     = "demo"
+    region      = "ap-northeast-2"
+    environment = "Production"
+    team        = "DevOps"
+    domain      = "example.com"
+    pri_domain  = "internal.example.com"
   }
-
-  context           = local.dr_context
-  bucket_name       = "dr-replica"
-  object_ownership  = "BucketOwnerEnforced"
-  enable_versioning = true
 }
 
-# 소스 버킷 (복제 설정)
-module "source_bucket" {
-  source = "./modules/tfmodule-aws-s3"
-
-  context           = local.context
-  bucket_name       = "production-data"
-  object_ownership  = "BucketOwnerEnforced"
+# 복제 대상 버킷 (다른 리전)
+module "target" {
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
+  providers = {
+    aws = aws.replica
+  }
+  context           = module.ctx.context
+  bucket_name       = "dr-replica-target"
+  object_ownership  = "ObjectWriter"
   enable_versioning = true
+  force_destroy     = true
+}
+
+# 소스 버킷 (KMS 암호화 및 복제 설정)
+module "source" {
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
+
+  context            = module.ctx.context
+  bucket_name        = "production-source"
+  object_ownership   = "ObjectWriter"
+
+  # KMS 암호화
+  sse_algorithm      = "aws:kms"
+  kms_master_key_id  = data.aws_kms_alias.origin.target_key_arn
+  bucket_key_enabled = true
+
+  # 버전 관리 (복제 필수)
+  enable_versioning  = true
 
   # 복제 설정
   enable_replication = true
@@ -379,29 +398,25 @@ module "source_bucket" {
     {
       id                        = "dr-replication"
       status                    = true
-      priority                  = 1
-      delete_marker_replication = true
+      delete_marker_replication = false
 
       destination = {
-        bucket        = module.replica_bucket.bucket_arn
-        storage_class = "STANDARD_IA"
+        bucket             = module.target.bucket_arn
+        storage_class      = "STANDARD_IA"
+        replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn
       }
 
-      # 실시간 복제
-      destination = {
-        replication_time = {
-          status = "Enabled"
-          minutes = 15
-        }
-        metrics = {
-          status = "Enabled"
-          minutes = 15
+      # KMS 암호화된 객체 복제
+      source_selection_criteria = {
+        sse_kms_encrypted_objects = {
+          enabled = true
         }
       }
     }
   ]
 
-  depends_on = [module.replica_bucket]
+  force_destroy = true
+  depends_on    = [module.target]
 }
 ```
 
@@ -409,9 +424,9 @@ module "source_bucket" {
 
 ```hcl
 module "static_website" {
-  source = "./modules/tfmodule-aws-s3"
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
 
-  context          = local.context
+  context          = module.ctx.context
   bucket_name      = "static-website"
   object_ownership = "BucketOwnerEnforced"
 
