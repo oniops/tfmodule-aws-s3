@@ -25,10 +25,6 @@ resource "aws_s3_bucket_replication_configuration" "this" {
         status = try(tobool(rule.value.delete_marker_replication) ? "Enabled" : "Disabled", "Disabled")
       }
 
-      existing_object_replication {
-        status = try(tobool(rule.value.existing_object_replication) ? "Enabled" : "Disabled", "Disabled")
-      }
-      
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html
       dynamic "existing_object_replication" {
         for_each = try(rule.value.existing_object_replication, null) == null ? [] : [true]
