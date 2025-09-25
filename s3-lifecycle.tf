@@ -7,7 +7,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
   dynamic "rule" {
     for_each = var.lifecycle_rules
     content {
-      id = try(rule.value.id, "five-years-rule")
+      id     = try(rule.value.id, "five-years-rule")
       status = try(rule.value.status, "Enabled")
 
       dynamic "filter" {
@@ -27,7 +27,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
             for_each = lookup(filter.value, "and", [])
             content {
               prefix = lookup(and.value, "prefix", null)
-              tags = lookup(and.value, "tags", null)
+              tags   = lookup(and.value, "tags", null)
             }
           }
           prefix = lookup(filter.value, "prefix", null)
@@ -35,13 +35,13 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
             iterator = tag
             for_each = lookup(filter.value, "tag", {})
             content {
-              key = try(tag.key, null)
+              key   = try(tag.key, null)
               value = try(tag.value, null)
             }
           }
 
           object_size_greater_than = lookup(filter.value, "object_size_greater_than", null)
-          object_size_less_than = lookup(filter.value, "object_size_greater_than", null)
+          object_size_less_than    = lookup(filter.value, "object_size_less_than", null)
         }
       }
 
@@ -49,7 +49,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.standard_ia_days, 0) > 0 ? [true] : []
         content {
           storage_class = "STANDARD_IA"
-          days = try(rule.value.standard_ia_days, 60)
+          days          = try(rule.value.standard_ia_days, 60)
         }
       }
 
@@ -57,7 +57,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.intelligent_tiering_days, 0) > 0 ? [true] : []
         content {
           storage_class = "INTELLIGENT_TIERING"
-          days = try(rule.value.intelligent_tiering_days, 90)
+          days          = try(rule.value.intelligent_tiering_days, 90)
         }
       }
 
@@ -65,7 +65,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.onezone_ia_days, 0) > 0 ? [true] : []
         content {
           storage_class = "ONEZONE_IA"
-          days = try(rule.value.onezone_ia_days, 120)
+          days          = try(rule.value.onezone_ia_days, 120)
         }
       }
 
@@ -73,7 +73,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.glacier_ir_days, 0) > 0 ? [true] : []
         content {
           storage_class = "GLACIER_IR"
-          days = try(rule.value.glacier_ir_days, 180)
+          days          = try(rule.value.glacier_ir_days, 180)
         }
       }
 
@@ -81,7 +81,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.glacier_days, 0) > 0 ? [true] : []
         content {
           storage_class = "GLACIER"
-          days = try(rule.value.glacier_days, 365)
+          days          = try(rule.value.glacier_days, 365)
         }
       }
 
@@ -89,7 +89,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         for_each = try(rule.value.deep_archive_days, 0) > 0 ? [true] : []
         content {
           storage_class = "DEEP_ARCHIVE"
-          days = try(rule.value.deep_archive_days, 730)
+          days          = try(rule.value.deep_archive_days, 730)
         }
       }
 
@@ -105,7 +105,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       dynamic "noncurrent_version_transition" {
         for_each = try(rule.value.noncurrent_version_glacier_days, 0) > 0 ? [true] : []
         content {
-          storage_class = "GLACIER"
+          storage_class   = "GLACIER"
           noncurrent_days = try(rule.value.noncurrent_version_glacier_days, 730)
         }
       }
@@ -113,7 +113,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
       dynamic "noncurrent_version_transition" {
         for_each = try(rule.value.noncurrent_version_deep_archive_days, 0) > 0 ? [true] : []
         content {
-          storage_class = "DEEP_ARCHIVE"
+          storage_class   = "DEEP_ARCHIVE"
           noncurrent_days = try(rule.value.noncurrent_version_deep_archive_days, 730)
         }
       }
