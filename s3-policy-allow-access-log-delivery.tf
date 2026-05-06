@@ -4,9 +4,9 @@
 
 locals {
   policy_allow_access_log_delivery = var.create && var.attach_access_log_delivery_policy ? templatefile("${path.module}/templates/s3-policy-allow-access-log-delivery.tpl", {
-      bucket_arn                                 = aws_s3_bucket.this[0].arn
-      account_id                                 = local.account_id
-      access_log_delivery_policy_source_buckets  = var.access_log_delivery_policy_source_buckets
-      access_log_delivery_policy_source_accounts = var.access_log_delivery_policy_source_accounts
-    }) : ""
+    bucket_arn                                 = aws_s3_bucket.this[0].arn
+    account_id                                 = local.account_id
+    access_log_delivery_policy_source_buckets  = var.access_log_delivery_policy_source_buckets
+    access_log_delivery_policy_source_accounts = var.access_log_delivery_policy_source_accounts
+  }) : ""
 }

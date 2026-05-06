@@ -1,5 +1,5 @@
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -14,7 +14,7 @@ module "ctx" {
 }
 
 module "targetFirst" {
-  source    = "../../"
+  source = "../../"
   providers = {
     aws = aws.replica
   }
@@ -26,7 +26,7 @@ module "targetFirst" {
 }
 
 module "targetSecond" {
-  source    = "../../"
+  source = "../../"
   providers = {
     aws = aws.replica
   }
@@ -41,15 +41,15 @@ module "targetSecond" {
 module "source" {
   source = "../../"
 
-  context                 = module.ctx.context
-  bucket_name             = "exr301-multiple-replica-source"
-  object_ownership        = "ObjectWriter"
-  sse_algorithm           = "aws:kms"
-  kms_master_key_id       = data.aws_kms_alias.origin.target_key_arn
-  bucket_key_enabled      = true
-  enable_versioning       = true
+  context            = module.ctx.context
+  bucket_name        = "exr301-multiple-replica-source"
+  object_ownership   = "ObjectWriter"
+  sse_algorithm      = "aws:kms"
+  kms_master_key_id  = data.aws_kms_alias.origin.target_key_arn
+  bucket_key_enabled = true
+  enable_versioning  = true
   enable_replication = true
-  replication_rules  = [
+  replication_rules = [
     {
       id     = "first-rule"
       status = true
@@ -59,24 +59,24 @@ module "source" {
       }
 
       destination = {
-        bucket             = module.targetFirst.bucket_arn
+        bucket = module.targetFirst.bucket_arn
       }
     },
     {
       id       = "second-rule"
       status   = true
       priority = 10
-      
-      filter   = {
+
+      filter = {
         prefix = "second/"
       }
-      
+
       source_selection_criteria = {
         sse_kms_encrypted_objects = {
           enabled = true
         }
       }
-      
+
       destination = {
         bucket             = module.targetSecond.bucket_arn
         replica_kms_key_id = data.aws_kms_alias.replica.target_key_arn

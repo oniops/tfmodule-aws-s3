@@ -1,5 +1,5 @@
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -40,7 +40,7 @@ module "source" {
       status                    = true
       delete_marker_replication = false
       destination = {
-        bucket        = module.target.bucket_arn
+        bucket = module.target.bucket_arn
       }
     }
   ]

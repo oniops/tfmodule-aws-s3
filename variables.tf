@@ -54,9 +54,9 @@ variable "bucket_acl" {
 variable "object_ownership" {
   type        = string
   description = "Object ownership. Valid values: BucketOwnerPreferred, ObjectWriter or BucketOwnerEnforced"
-  
+
   validation {
-    condition = contains(["BucketOwnerPreferred", "ObjectWriter", "BucketOwnerEnforced"], var.object_ownership)
+    condition     = contains(["BucketOwnerPreferred", "ObjectWriter", "BucketOwnerEnforced"], var.object_ownership)
     error_message = "object_ownership must be one of: BucketOwnerPreferred, ObjectWriter, BucketOwnerEnforced"
   }
 }
@@ -236,8 +236,8 @@ variable "enable_versioning" {
 }
 
 variable "versioning" {
-  type = map(string)
-  default = {}
+  type        = map(string)
+  default     = {}
   description = <<EOF
 Enable versioning state of the bucket
 
@@ -387,8 +387,8 @@ variable "attach_aws_inspector_report_policy" {
 }
 
 variable "access_log_delivery_policy_source_buckets" {
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
   description = <<EOF
 List of S3 bucket ARNs which should be allowed to deliver access logs to this bucket.
 
@@ -400,8 +400,8 @@ EOF
 }
 
 variable "access_log_delivery_policy_source_accounts" {
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
   description = <<-EOF
 List of AWS Account IDs should be allowed to deliver access logs to this bucket.
 
@@ -413,8 +413,8 @@ EOF
 }
 
 variable "cloudfront_distributions_arn" {
-  type = list(string)
-  default = []
+  type        = list(string)
+  default     = []
   description = <<-EOF
 List of AWS Cloudfront OAC(Origin Access Control) IDs should be allowed to access this bucket.
 
@@ -431,23 +431,26 @@ variable "source_vpce" {
 }
 
 variable "attach_custom_policy" {
-  type        = string
+  type        = any
   default     = null
   description = <<EOF
-A valid bucket policy JSON document.
+Custom bucket policy statements. Accepts any of:
+  - a list of statement objects (recommended, native HCL)
+  - a single statement object
+  - a JSON document string (backwards compatible)
+
+Native HCL example (recommended):
 
   attach_custom_policy = [
     {
-      "Sid" : "AllowCloudFrontDistributeForWhiteLabel",
-      "Effect" : "Allow",
-      "Principal" : {
-        "Service" : "cloudfront.amazonaws.com"
-      },
-      "Action" : "s3:GetObject",
-      "Resource" : "arn:aws:s3:::demo-an2d-example1022-s3/*",
-      "Condition" : {
-        "ArnLike" : {
-          "aws:SourceArn" : "arn:aws:cloudfront::111122223333:distribution/*"
+      Sid       = "AllowCloudFrontDistributeForWhiteLabel"
+      Effect    = "Allow"
+      Principal = { Service = "cloudfront.amazonaws.com" }
+      Action    = "s3:GetObject"
+      Resource  = "arn:aws:s3:::demo-an2d-example1022-s3/*"
+      Condition = {
+        ArnLike = {
+          "aws:SourceArn" = "arn:aws:cloudfront::111122223333:distribution/*"
         }
       }
     }

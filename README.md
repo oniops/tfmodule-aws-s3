@@ -68,12 +68,12 @@ tfmodule-aws-s3/
 └── example/                                   # 사용 예제
     ├── basic/                                 # Basic 버킷
     ├── cloudtrail/                            # CloudTrail 로그 버킷
+    ├── custom-policy/                         # 사용자 정의 버킷 정책
     ├── lifecycle/                             # 라이프사이클 설정
     ├── replica-basic/                         # 기본 복제
-    ├── replica-kms/                           # KMS 암호화 복제
+    ├── replica-filtered-kms/                  # 필터 + KMS 암호화 복제
     ├── replica-multiple/                      # 다중 복제 규칙
-    ├── replica-reporting/                     # Batch Operations 복제
-    └── replica-bucket-exists/                 # 기존 버킷 활용
+    └── replica-reporting/                     # Batch Operations 복제
 ```
 
 ## 주요 기능
@@ -104,9 +104,21 @@ restrict_public_buckets = true
 ```
 
 #### 버킷 정책
+
+빌트인 정책 플래그를 켜는 것만으로 자주 쓰는 statement 들이 자동으로 합쳐져 적용됩니다. 여러 정책을 동시에 켜도 statement 의 형태가 서로 달라도 (Action/Resource 가 string vs list, Principal 이 `"*"` vs object 등) 하나의 버킷 정책으로 안전하게 병합됩니다.
+
 ```hcl
 # HTTPS 전송 강제
 attach_deny_insecure_transport_policy = true
+
+# 잘못된 암호화 헤더 거부
+attach_deny_incorrect_encryption_headers = true
+
+# ALB / NLB / ELB / S3 액세스 로그 / Inspector 리포트 등 서비스 로그 수집
+attach_lb_log_delivery_policy      = true
+attach_elb_log_delivery_policy     = true
+attach_access_log_delivery_policy  = true
+attach_aws_inspector_report_policy = true
 
 # VPC 엔드포인트 전용 액세스
 source_vpce = "vpce-1234567890abcdef0"
@@ -116,6 +128,55 @@ cloudfront_distributions_arn = [
   "arn:aws:cloudfront::111122223333:distribution/ABCDEF123456"
 ]
 ```
+
+#### 커스텀 정책 (`attach_custom_policy`)
+
+`attach_custom_policy` 는 `any` 타입으로 받기 때문에 다음 세 가지 형식을 모두 지원합니다. 빌트인 정책과 함께 사용하면 모든 statement 가 하나의 `aws_s3_bucket_policy` 로 병합되어 적용됩니다.
+
+```hcl
+# 1) 권장: native HCL statement 객체 리스트
+attach_custom_policy = [
+  {
+    Sid       = "AllowCloudFrontDistribution"
+    Effect    = "Allow"
+    Principal = { Service = "cloudfront.amazonaws.com" }
+    Action    = "s3:GetObject"
+    Resource  = "arn:aws:s3:::my-bucket/*"
+    Condition = {
+      ArnLike = {
+        "aws:SourceArn" = "arn:aws:cloudfront::111122223333:distribution/*"
+      }
+    }
+  },
+  {
+    Sid       = "AllowServiceLogWrite"
+    Effect    = "Allow"
+    Principal = { Service = ["logdelivery.elasticloadbalancing.amazonaws.com"] }
+    Action    = ["s3:PutObject", "s3:PutObjectAcl"]
+    Resource  = ["arn:aws:s3:::my-bucket", "arn:aws:s3:::my-bucket/*"]
+  },
+]
+
+# 2) 단일 statement 객체
+attach_custom_policy = {
+  Sid       = "AllowCloudFrontDistribution"
+  Effect    = "Allow"
+  Principal = { Service = "cloudfront.amazonaws.com" }
+  Action    = "s3:GetObject"
+  Resource  = "arn:aws:s3:::my-bucket/*"
+}
+
+# 3) 기존 JSON 문자열 (하위호환)
+attach_custom_policy = jsonencode([
+  {
+    Sid    = "Example"
+    Effect = "Allow"
+    # ...
+  }
+])
+```
+
+> 동일 statement 내에서 `Action` / `Resource` / `Principal.Service` 등은 단일 값이든 리스트든 자유롭게 섞어 쓸 수 있습니다. 빈 statement 를 주거나 `attach_custom_policy = null` 로 두면 적용되지 않습니다.
 
 ### 2. 📊 데이터 관리
 
@@ -253,6 +314,22 @@ attach_elb_log_delivery_policy = true
 | `enable_bucket_lifecycle` | `false` | 라이프사이클 규칙 활성화 |
 | `enable_replication` | `false` | 복제 활성화 |
 
+### 정책 관련 변수
+
+플래그 중 하나라도 `true` 이거나 ARN/VPCE/커스텀 정책이 지정되면 모듈이 자동으로 `aws_s3_bucket_policy` 를 생성하고 모든 statement 를 하나로 병합합니다.
+
+| 변수명 | 타입 | 기본값 | 설명 |
+|--------|------|--------|------|
+| `attach_deny_insecure_transport_policy` | bool | `false` | HTTPS 가 아닌 요청 차단 |
+| `attach_deny_incorrect_encryption_headers` | bool | `false` | 잘못된 암호화 헤더 요청 거부 |
+| `attach_lb_log_delivery_policy` | bool | `false` | ALB / NLB 액세스 로그 수신 허용 |
+| `attach_elb_log_delivery_policy` | bool | `false` | Classic ELB 액세스 로그 수신 허용 |
+| `attach_access_log_delivery_policy` | bool | `false` | S3 서버 액세스 로그 수신 허용 |
+| `attach_aws_inspector_report_policy` | bool | `false` | AWS Inspector 리포트 익스포트 허용 |
+| `cloudfront_distributions_arn` | list(string) | `[]` | CloudFront OAC 접근을 허용할 배포 ARN 목록 |
+| `source_vpce` | string | `null` | 지정된 VPC 엔드포인트로만 객체 읽기 허용 |
+| `attach_custom_policy` | any | `null` | 사용자 정의 statement (list/object/JSON 문자열 모두 허용) |
+
 ## 출력값
 
 | 출력명 | 설명 |
@@ -273,7 +350,7 @@ attach_elb_log_delivery_policy = true
 ```hcl
 # 컨텍스트 모듈 사용 (권장)
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "myproject"
     region      = "ap-northeast-2"
@@ -367,7 +444,7 @@ module "log_bucket" {
 ```hcl
 # 컨텍스트 모듈 (tfmodule-context 사용)
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -435,7 +512,57 @@ module "source" {
 }
 ```
 
-### 5. CloudFront 배포용 정적 웹사이트 버킷
+### 5. 커스텀 정책 (빌트인 정책과 혼합)
+
+빌트인 정책 플래그와 사용자 정의 statement 를 한 번에 적용한 예시입니다. `attach_custom_policy` 는 native HCL 리스트를 그대로 전달할 수 있으며, statement 들의 구조가 서로 달라도(예: `Action` 이 string vs list, `Principal.Service` 가 string vs list) 정상적으로 병합됩니다.
+
+```hcl
+module "s3_with_custom_policy" {
+  source = "git::https://github.com/oniops/tfmodule-aws-s3.git"
+
+  context          = module.ctx.context
+  bucket           = "my-app-bucket"
+  object_ownership = "BucketOwnerEnforced"
+
+  # 빌트인: HTTPS 강제
+  attach_deny_insecure_transport_policy = true
+
+  # 사용자 정의 statement 들
+  attach_custom_policy = [
+    {
+      Sid       = "AllowCloudFrontDistribute"
+      Effect    = "Allow"
+      Principal = { Service = "cloudfront.amazonaws.com" }
+      Action    = "s3:GetObject"
+      Resource  = "arn:aws:s3:::my-app-bucket/*"
+      Condition = {
+        ArnLike = {
+          "aws:SourceArn" = "arn:aws:cloudfront::111122223333:distribution/*"
+        }
+      }
+    },
+    {
+      Sid       = "AllowServiceLogWrite"
+      Effect    = "Allow"
+      Principal = {
+        Service = [
+          "logdelivery.elasticloadbalancing.amazonaws.com",
+          "cloudwatch.amazonaws.com",
+        ]
+      }
+      Action = ["s3:PutObject", "s3:PutObjectAcl"]
+      Resource = [
+        "arn:aws:s3:::my-app-bucket",
+        "arn:aws:s3:::my-app-bucket/*",
+      ]
+    },
+  ]
+}
+```
+
+전체 예제는 [`example/custom-policy/`](./example/custom-policy/) 를 참고하세요.
+
+### 6. CloudFront 배포용 정적 웹사이트 버킷
 
 ```hcl
 module "static_website" {
@@ -493,6 +620,14 @@ Error: At least one filter condition is required
 Error: Object Lock configuration cannot be changed after bucket creation
 ```
 **해결책**: Object Lock은 버킷 생성 시에만 설정 가능합니다. 새 버킷을 생성해야 합니다.
+
+#### 5. 커스텀 정책 statement 가 적용되지 않음
+**원인**: `attach_custom_policy` 가 `null` 이거나 빈 리스트(`[]`) 인 경우 모듈이 정책을 생성하지 않습니다. 또한 native HCL 리스트로 전달할 때 키 이름은 IAM 표준(`Sid`, `Effect`, `Principal`, `Action`, `Resource`, `Condition`) 을 그대로 사용해야 합니다.
+
+**해결책**: `attach_custom_policy` 에 최소 하나 이상의 statement 객체를 포함한 리스트를 넘기거나, `terraform plan -out=tfplan && terraform show -json tfplan | jq '.. | .Statement? // empty'` 로 병합 결과를 검증하세요.
+
+#### 6. 정책 statement 구조가 달라 plan 이 실패
+이전 버전의 일부 모듈에서는 `tolist(jsondecode(...))` + `concat()` 패턴으로 statement 를 합치다가 `Action` / `Resource` / `Principal` 의 형태가 다르면 type-unification 에러가 났습니다. 본 모듈은 `flatten([for s : jsondecode(s)])` + `try()` 기반으로 이질적 statement 를 그대로 병합하므로 이 문제가 발생하지 않습니다. 그래도 발생한다면 모듈 버전이 최신인지 확인하세요.
 
 ### 디버깅 팁
 
