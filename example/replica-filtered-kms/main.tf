@@ -1,5 +1,5 @@
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -35,8 +35,8 @@ module "source" {
   enable_versioning  = true
   enable_replication = true
   # SSE-KMS 키로 암호화된 객체를 대상으로 복제를 하는 경우 `sse_algorithm` 속성은 `aws:kms` 으로 설정
-  sse_algorithm      = "aws:kms"
-  kms_master_key_id  = data.aws_kms_alias.origin.target_key_arn
+  sse_algorithm     = "aws:kms"
+  kms_master_key_id = data.aws_kms_alias.origin.target_key_arn
   replication_rules = [
     {
       id                        = "filtered-kms-replica"

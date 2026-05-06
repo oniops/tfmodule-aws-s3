@@ -1,5 +1,5 @@
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -46,14 +46,14 @@ module "source" {
   replication_report_bucket_arn = module.report.bucket_arn
   replication_rules = [
     {
-      id                          = "report-replica-rule"
-      status                      = true
-      delete_marker_replication   = false
-      
+      id                        = "report-replica-rule"
+      status                    = true
+      delete_marker_replication = false
+
       # 중요: existing_object_replication을 false 또는 생략
       # `Batch Operations`으로 별도 처리
       existing_object_replication = false
-      
+
       destination = {
         bucket        = module.target.bucket_arn
         storage_class = null

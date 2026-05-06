@@ -31,9 +31,9 @@ locals {
   elb_service_account = lookup(local.elb_service_accounts, local.region, null)
 
   policy_allow_elb_log_delivery = var.create && var.attach_elb_log_delivery_policy ? templatefile("${path.module}/templates/s3-policy-allow-elb-log-delivery.tpl", {
-      bucket_name                    = local.bucket_name
-      region                         = title(local.region)
-      attach_elb_log_delivery_policy = var.attach_elb_log_delivery_policy
-      elb_service_account            = local.elb_service_account
-    }) : ""
+    bucket_name                    = local.bucket_name
+    region                         = title(local.region)
+    attach_elb_log_delivery_policy = var.attach_elb_log_delivery_policy
+    elb_service_account            = local.elb_service_account
+  }) : ""
 }

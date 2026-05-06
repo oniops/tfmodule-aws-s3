@@ -46,7 +46,7 @@ resource "aws_s3_bucket" "this" {
 
 # Block public access settings
 resource "aws_s3_bucket_public_access_block" "this" {
-  count = var.create ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = try(aws_s3_bucket.this[0].id, "")
 
   block_public_acls       = var.block_public_acls
@@ -58,7 +58,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 # Bucket ACL Policy in-case of BucketOwnerPreferred, ObjectWriter
 # Note: ACL is disabled when bucket policies are attached to avoid permission conflicts
 resource "aws_s3_bucket_acl" "this" {
-  count = var.create && var.object_ownership != "BucketOwnerEnforced" && !local.attach_policy  ? 1 : 0
+  count = var.create && var.object_ownership != "BucketOwnerEnforced" && !local.attach_policy ? 1 : 0
 
   bucket = try(aws_s3_bucket.this[0].id, "")
 
@@ -85,7 +85,7 @@ resource "aws_s3_bucket_acl" "this" {
 }
 
 resource "aws_s3_bucket_ownership_controls" "this" {
-  count = var.create ? 1 : 0
+  count  = var.create ? 1 : 0
   bucket = try(aws_s3_bucket.this[0].id, "")
 
   rule {

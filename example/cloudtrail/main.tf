@@ -1,5 +1,5 @@
 module "ctx" {
-  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.4"
+  source = "git::https://github.com/oniops/tfmodule-context.git?ref=v1.3.5"
   context = {
     project     = "demo"
     region      = "ap-northeast-2"
@@ -20,8 +20,8 @@ data "aws_iam_policy_document" "trail" {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
     }
-    resources = [module.trail.bucket_arn,]
-    actions   = ["s3:GetBucketAcl",]
+    resources = [module.trail.bucket_arn, ]
+    actions   = ["s3:GetBucketAcl", ]
   }
 
   statement {
@@ -46,8 +46,8 @@ data "aws_iam_policy_document" "trail" {
       type        = "AWS"
       identifiers = ["*"]
     }
-    resources = ["${module.trail.bucket_arn}/*",]
-    actions   = ["s3:PutObject",]
+    resources = ["${module.trail.bucket_arn}/*", ]
+    actions   = ["s3:PutObject", ]
     condition {
       test     = "StringNotEquals"
       values   = ["s3:x-amz-server-side-encryption"]
@@ -59,24 +59,15 @@ data "aws_iam_policy_document" "trail" {
 
 
 module "trail" {
-  source              = "../../"
-  context             = module.ctx.context
-  bucket              = "central-cloudtrail"
-  object_ownership    = "BucketOwnerPreferred"
+  source               = "../../"
+  context              = module.ctx.context
+  bucket               = "central-cloudtrail"
+  object_ownership     = "BucketOwnerPreferred"
   attach_custom_policy = ""
-  object_lock_enabled = true
+  object_lock_enabled  = true
 }
 
 resource "aws_s3_bucket_policy" "policy" {
   bucket = module.trail.bucket_id
   policy = data.aws_iam_policy_document.trail.json
 }
-
-# resource "aws_s3_bucket_versioning" "this" {
-#   bucket = module.trail.bucket_id
-#   versioning_configuration {
-#     status     = "Enabled"
-#     # mfa_delete = "Enabled" # Only available for ROOT account. just use CLI
-#   }
-#   expected_bucket_owner = local.account
-# }

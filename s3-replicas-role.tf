@@ -25,10 +25,10 @@ locals {
   )
 
   replica_policy = templatefile("${path.module}/templates/s3-policy-allow-bucket-replicas.tpl", {
-    s3_origin_arn                = local.s3_origion_arn
-    s3_destination_bucket_arns   = local.s3_destination_bucket_arns
-    s3_destination_kms_arns      = local.s3_destination_kms_arns
-    kms_master_key_id            = local.kms_master_key_id
+    s3_origin_arn                 = local.s3_origion_arn
+    s3_destination_bucket_arns    = local.s3_destination_bucket_arns
+    s3_destination_kms_arns       = local.s3_destination_kms_arns
+    kms_master_key_id             = local.kms_master_key_id
     replication_report_bucket_arn = var.replication_report_bucket_arn
   })
 }
