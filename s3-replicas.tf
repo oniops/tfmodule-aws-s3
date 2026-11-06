@@ -1,154 +1,118 @@
 locals {
-  # Must have bucket versioning enabled first
-  bucket_versioning_status = var.bucket_versioning_status != "" ? var.bucket_versioning_status : try(aws_s3_bucket_versioning.this[0].versioning_configuration[0].status, var.enable_versioning ? "Enabled" : "")
-  enable_versioning_status = try(lower(local.bucket_versioning_status), "") == "enabled" ? true : false
-  replication_rules        = flatten(try([var.replication_rules], []))
-  enabled_replication      = var.enable_replication && local.enable_versioning_status
-  create_replication_role  = local.enabled_replication && var.replication_role_arn == null ? true : false
-  replication_role_arn     = var.replication_role_arn != null ? var.replication_role_arn : try(aws_iam_role.replica[0].arn, "")
+  # Replication requires bucket versioning (see s3-versioning.tf).
+  enabled_replication     = var.create && var.enable_replication && local.enable_versioning_status && length(var.replication_rules) > 0
+  create_replication_role = local.enabled_replication && var.replication_role_arn == null
+  replication_role_arn    = var.replication_role_arn != null ? var.replication_role_arn : try(aws_iam_role.replica[0].arn, "")
 }
 
 resource "aws_s3_bucket_replication_configuration" "this" {
   count  = local.enabled_replication ? 1 : 0
   bucket = aws_s3_bucket.this[0].bucket
-  role   = local.replication_role_arn #  aws_iam_role.east_replication.arn
+  role   = local.replication_role_arn
 
   dynamic "rule" {
-    for_each = local.replication_rules
-
+    for_each = var.replication_rules
     content {
-      id       = try(rule.value.id, null)
-      priority = try(rule.value.priority, null)
-      status   = try(tobool(rule.value.status) ? "Enabled" : "Disabled", "Disabled")
+      id       = rule.key
+      priority = rule.value.priority
+      status   = rule.value.enabled ? "Enabled" : "Disabled"
 
       delete_marker_replication {
-        status = try(tobool(rule.value.delete_marker_replication) ? "Enabled" : "Disabled", "Disabled")
+        status = rule.value.delete_marker_replication ? "Enabled" : "Disabled"
       }
 
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-what-is-isnot-replicated.html
       dynamic "existing_object_replication" {
-        for_each = try(rule.value.existing_object_replication, null) == null ? [] : [true]
-
+        for_each = rule.value.existing_object_replication ? ["Enabled"] : []
         content {
-          status = try(tobool(rule.value.existing_object_replication) ? "Enabled" : "Disabled", "Disabled")
+          status = existing_object_replication.value
         }
       }
 
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-add-config.html#replication-config-optional-filter
-      dynamic "filter" {
-        for_each = length(try(flatten([rule.value.filter]), [])) == 0 ? [true] : []
-        content {
-        }
-      }
+      # Always render a filter block; an empty filter replicates every object.
+      filter {
+        prefix = rule.value.filter.prefix
 
-      dynamic "filter" {
-        iterator = filter
-        for_each = length(keys(lookup(rule.value, "filter", {}))) > 0 ? [lookup(rule.value, "filter", {})] : []
-
-        content {
-          dynamic "and" {
-            iterator = and
-            for_each = lookup(filter.value, "and", [])
-            content {
-              prefix = lookup(and.value, "prefix", null)
-              tags   = lookup(and.value, "tags", null)
-            }
+        dynamic "tag" {
+          for_each = rule.value.filter.tag[*]
+          content {
+            key   = tag.value.key
+            value = tag.value.value
           }
-          prefix = lookup(filter.value, "prefix", null)
-          dynamic "tag" {
-            iterator = tag
-            for_each = lookup(filter.value, "tag", {})
-            content {
-              key   = try(tag.key, null)
-              value = try(tag.value, null)
-            }
+        }
+
+        dynamic "and" {
+          for_each = rule.value.filter.and[*]
+          content {
+            prefix = and.value.prefix
+            tags   = and.value.tags
           }
         }
       }
 
       # see - https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication-add-config.html#replication-config-optional-dest-config
-      dynamic "destination" {
-        for_each = try(flatten([rule.value.destination]), [])
+      destination {
+        bucket        = rule.value.destination.bucket
+        storage_class = rule.value.destination.storage_class
+        account       = rule.value.destination.account_id
 
-        content {
-          bucket        = destination.value.bucket
-          storage_class = try(destination.value.storage_class, null)
-          account       = try(destination.value.account_id, destination.value.account, null)
+        dynamic "access_control_translation" {
+          for_each = rule.value.destination.owner_override ? ["Destination"] : []
+          content {
+            owner = access_control_translation.value
+          }
+        }
 
-          dynamic "access_control_translation" {
-            for_each = try(flatten([destination.value.access_control_translation]), [])
+        dynamic "encryption_configuration" {
+          for_each = rule.value.destination.replica_kms_key_id[*]
+          content {
+            replica_kms_key_id = encryption_configuration.value
+          }
+        }
 
-            content {
-              owner = access_control_translation.value.owner
+        # S3 Replication Time Control supports 15 minutes only.
+        dynamic "replication_time" {
+          for_each = rule.value.destination.replication_time ? [15] : []
+          content {
+            status = "Enabled"
+            time {
+              minutes = replication_time.value
             }
           }
+        }
 
-          dynamic "encryption_configuration" {
-            for_each = flatten([
-              try(destination.value.encryption_configuration.replica_kms_key_id, destination.value.replica_kms_key_id, [])
-            ])
-            content {
-              replica_kms_key_id = encryption_configuration.value
-            }
-          }
-
-          dynamic "replication_time" {
-            for_each = try(flatten([destination.value.replication_time]), [])
-            content {
-              status = try(tobool(replication_time.value.status) ? "Enabled" : replication_time.value.status, "Disabled")
-              dynamic "time" {
-                for_each = try(replication_time.value.minutes, null) == null ? [] : [true]
-                content {
-                  minutes = replication_time.value.minutes
-                }
-              }
-            }
-          }
-
-          dynamic "metrics" {
-            for_each = try(flatten([destination.value.metrics]), [])
-            content {
-              status = try(tobool(metrics.value.status) ? "Enabled" : metrics.value.status, "Disabled")
-              dynamic "event_threshold" {
-                for_each = try(flatten([metrics.value.minutes]), [])
-                content {
-                  minutes = metrics.value.minutes
-                }
-              }
+        dynamic "metrics" {
+          for_each = rule.value.destination.metrics ? [15] : []
+          content {
+            status = "Enabled"
+            event_threshold {
+              minutes = metrics.value
             }
           }
         }
       }
 
       dynamic "source_selection_criteria" {
-        for_each = try(flatten([rule.value.source_selection_criteria]), [])
-
+        for_each = anytrue(values(rule.value.source_selection_criteria)) ? [rule.value.source_selection_criteria] : []
         content {
           dynamic "replica_modifications" {
-            for_each = flatten([
-              try(source_selection_criteria.value.replica_modifications.enabled, source_selection_criteria.value.replica_modifications.status, [])
-            ])
+            for_each = source_selection_criteria.value.replica_modifications ? ["Enabled"] : []
             content {
-              status = try(tobool(replica_modifications.value) ? "Enabled" : "Disabled", replica_modifications.value, "Disabled")
+              status = replica_modifications.value
             }
           }
 
           dynamic "sse_kms_encrypted_objects" {
-            for_each = flatten([
-              try(source_selection_criteria.value.sse_kms_encrypted_objects.enabled, source_selection_criteria.value.sse_kms_encrypted_objects.status, [])
-            ])
+            for_each = source_selection_criteria.value.sse_kms_encrypted_objects ? ["Enabled"] : []
             content {
-              status = try(tobool(sse_kms_encrypted_objects.value) ? "Enabled" : "Disabled", sse_kms_encrypted_objects.value, "Disabled")
+              status = sse_kms_encrypted_objects.value
             }
           }
         }
       }
-
     }
-    # end-of-content
-
   }
-  # end-of-rule
 
   depends_on = [aws_s3_bucket_versioning.this]
 }

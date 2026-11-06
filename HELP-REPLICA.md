@@ -39,132 +39,116 @@ module "source" {
   enable_versioning  = true  # 필수: 버전 관리 활성화
   enable_replication = true
 
-  replication_rules = [
-    {
-      id                        = "basic-replication"
-      status                    = true
+  # map key = rule ID
+  replication_rules = {
+    "basic-replication" = {
+      priority                  = 0      # 필수, 규칙마다 고유
       delete_marker_replication = false  # 삭제 마커 복제 여부
 
       destination = {
         bucket        = "arn:aws:s3:::target-bucket"
-        storage_class = "STANDARD_IA"  # null이면 원본과 동일
+        storage_class = "STANDARD_IA"  # 생략 시 원본과 동일
       }
     }
-  ]
+  }
 }
 ```
+
+> 입력 스키마 전체와 검증 규칙은 `variables-replication.tf` 의 `replication_rules` 정의를 참고하세요. 잘못된 조합(priority 중복, KMS 복제인데 `sse_kms_encrypted_objects` 미설정, RTC 만 켜고 metrics 를 끔, `owner_override` 인데 `account_id` 없음, `filter.and` 를 다른 조건과 함께 사용)은 `terraform plan` 단계에서 오류로 알려 줍니다.
 
 ### 고급 설정
 
 #### 1. RTC (Replication Time Control) - 15분 내 복제 보장
 
 ```hcl
-replication_rules = [
-  {
-    id     = "guaranteed-replication"
-    status = true
+replication_rules = {
+  "guaranteed-replication" = {
+    priority = 0
 
     destination = {
       bucket = "arn:aws:s3:::target-bucket"
-    }
 
-    # 15분 내 복제 보장 (추가 비용 발생)
-    replication_time = {
-      status  = true
-      minutes = 15
-    }
+      # 15분 내 복제 보장 (추가 비용 발생, AWS 고정값 15분)
+      replication_time = true
 
-    # 복제 메트릭 활성화
-    metrics = {
-      status  = true
-      minutes = 15
+      # 복제 메트릭 활성화 (RTC 사용 시 필수)
+      metrics = true
     }
   }
-]
+}
 ```
 
 #### 2. 필터링된 복제
 
 ```hcl
-replication_rules = [
-  {
-    id     = "filtered-replication"
-    status = true
+replication_rules = {
+  "filtered-replication" = {
+    priority = 0
 
     # Prefix 기반 필터
     filter = {
       prefix = "important/"
     }
 
-    # 또는 태그 기반 필터
+    # 또는 태그 기반 필터 (태그 1개)
     filter = {
-      tag = {
-        Replicate = "true"
-      }
+      tag = { key = "Replicate", value = "true" }
     }
 
-    # 또는 복합 필터 (AND 조건)
+    # 또는 복합 필터 (AND 조건) - 다른 조건과 함께 쓸 수 없음
     filter = {
-      and = [
-        {
-          prefix = "data/"
-          tags = {
-            Environment = "Production"
-            Replicate   = "true"
-          }
+      and = {
+        prefix = "data/"
+        tags = {
+          Environment = "Production"
+          Replicate   = "true"
         }
-      ]
+      }
     }
 
     destination = {
       bucket = "arn:aws:s3:::target-bucket"
     }
   }
-]
+}
 ```
 
 #### 3. KMS 암호화 객체 복제
 
 ```hcl
-replication_rules = [
-  {
-    id     = "kms-replication"
-    status = true
+replication_rules = {
+  "kms-replication" = {
+    priority = 0
 
     destination = {
       bucket             = "arn:aws:s3:::target-bucket"
       replica_kms_key_id = "arn:aws:kms:us-east-1:123456789012:key/..."
     }
 
-    # KMS 암호화된 객체만 복제
+    # KMS 암호화된 객체만 복제 (replica_kms_key_id 지정 시 필수)
     source_selection_criteria = {
-      sse_kms_encrypted_objects = {
-        enabled = true
-      }
+      sse_kms_encrypted_objects = true
     }
   }
-]
+}
 ```
 
 #### 4. Cross-Account 복제
 
 ```hcl
-replication_rules = [
-  {
-    id     = "cross-account"
-    status = true
+replication_rules = {
+  "cross-account" = {
+    priority = 0
 
     destination = {
-      bucket  = "arn:aws:s3:::other-account-bucket"
-      account = "987654321098"  # 대상 계정 ID
+      bucket     = "arn:aws:s3:::other-account-bucket"
+      account_id = "987654321098"  # 대상 계정 ID
 
-      # 대상 계정에서 객체 소유권 변경
-      access_control_translation = {
-        owner = "Destination"
-      }
+      # 대상 계정에서 객체 소유권 변경 (account_id 필요)
+      owner_override = true
     }
   }
-]
+}
 ```
 
 ## 배치 복제 (Batch Operations)
@@ -179,17 +163,16 @@ module "source" {
   # Batch Operations 리포트용 버킷 (필수)
   replication_report_bucket_arn = "arn:aws:s3:::report-bucket"
 
-  replication_rules = [
-    {
-      id                          = "batch-replication"
-      status                      = true
+  replication_rules = {
+    "batch-replication" = {
+      priority                    = 0
       existing_object_replication = false  # Batch로 별도 처리
 
       destination = {
         bucket = "arn:aws:s3:::target-bucket"
       }
     }
-  ]
+  }
 }
 ```
 
@@ -235,16 +218,14 @@ aws s3api list-objects-v2 \
 
 ### Batch Job JSON 구조
 
+> `S3ReplicateObject` 는 파라미터가 없는 작업입니다. 대상 버킷·스토리지 클래스·KMS 키는 소스 버킷의 복제 규칙(`replication_rules`)을 그대로 사용하므로, 복제 규칙을 먼저 만든 뒤 Job 을 실행해야 합니다.
+
 ```json
 {
   "AccountId": "123456789012",
   "ConfirmationRequired": false,
   "Operation": {
-    "S3ReplicateObject": {
-      "TargetResource": "arn:aws:s3:::target-bucket",
-      "StorageClass": "STANDARD_IA",
-      "TargetKeyPrefix": "backup/"
-    }
+    "S3ReplicateObject": {}
   },
   "Manifest": {
     "Spec": {
@@ -276,17 +257,16 @@ aws s3api list-objects-v2 \
 module "source" {
   enable_replication = true
 
-  replication_rules = [
-    {
-      id                          = "ongoing-replication"
-      status                      = true
+  replication_rules = {
+    "ongoing-replication" = {
+      priority                    = 0
       existing_object_replication = false  # 중복 방지
 
       destination = {
         bucket = "arn:aws:s3:::target-bucket"
       }
     }
-  ]
+  }
 
   replication_report_bucket_arn = module.report.bucket_arn
 }
@@ -320,10 +300,16 @@ S3는 자동으로 중복 복제를 방지합니다:
 
 ## 예제 시나리오
 
+예제는 [oniops/tfmodule-examples](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/) 저장소에서 관리합니다. 아래 명령은 해당 저장소를 클론한 위치에서 실행합니다.
+
+```bash
+git clone https://github.com/oniops/tfmodule-examples.git
+```
+
 ### 시나리오 1: 기본 Cross-Region 백업
 
 ```bash
-cd example/replica-basic
+cd tfmodule-examples/tfmodule-aws-s3/replica-basic
 terraform apply
 
 # 테스트
@@ -335,7 +321,7 @@ aws s3 cp test.txt s3://$(terraform output -raw source_bucket)/
 ### 시나리오 2: KMS 암호화 복제
 
 ```bash
-cd example/replica-kms
+cd tfmodule-examples/tfmodule-aws-s3/replica-filtered-kms
 terraform apply
 
 # KMS 암호화된 객체만 복제됨
@@ -344,7 +330,7 @@ terraform apply
 ### 시나리오 3: 다중 대상 복제
 
 ```bash
-cd example/replica-multiple
+cd tfmodule-examples/tfmodule-aws-s3/replica-multiple
 terraform apply
 
 # 여러 리전/버킷으로 동시 복제
@@ -353,7 +339,7 @@ terraform apply
 ### 시나리오 4: Batch Operations 대량 마이그레이션
 
 ```bash
-cd example/replica-reporting
+cd tfmodule-examples/tfmodule-aws-s3/replica-reporting
 terraform apply
 
 # 기존 객체 복제
@@ -361,15 +347,6 @@ terraform apply
 
 # 상태 모니터링
 ./check-replication-status.sh
-```
-
-### 시나리오 5: 기존 버킷 활용
-
-```bash
-cd example/replica-bucket-exists
-terraform apply
-
-# 이미 존재하는 버킷을 대상으로 복제
 ```
 
 ## 문제 해결
@@ -434,10 +411,10 @@ cat results.csv
 **A:** `delete_marker_replication = true` 설정 시 삭제 마커도 복제됩니다.
 
 ### Q3: 복제 중 Storage Class를 변경할 수 있나요?
-**A:** 네. `destination.storage_class`에서 지정 가능합니다. null이면 원본과 동일합니다.
+**A:** 네. `destination.storage_class`에서 지정 가능합니다. 생략하면 원본과 동일합니다.
 
 ### Q4: 양방향 복제가 가능한가요?
-**A:** 가능하지만 무한 루프 방지를 위해 `replica_modifications` 설정이 필요합니다.
+**A:** 가능하지만 무한 루프 방지를 위해 `source_selection_criteria.replica_modifications = true` 설정이 필요합니다.
 
 ### Q5: 복제 상태를 어떻게 확인하나요?
 **A:**
@@ -463,10 +440,9 @@ aws s3api head-object --bucket bucket --key key --query ReplicationStatus
 
 ## 추가 리소스
 
-- [예제: 기본 복제](./example/replica-basic/)
-- [예제: KMS 암호화 복제](./example/replica-kms/)
-- [예제: 다중 대상 복제](./example/replica-multiple/)
-- [예제: Batch Operations](./example/replica-reporting/)
-- [예제: 기존 버킷 활용](./example/replica-bucket-exists/)
+- [예제: 기본 복제](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-basic/)
+- [예제: KMS 암호화 복제](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-filtered-kms/)
+- [예제: 다중 대상 복제](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-multiple/)
+- [예제: Batch Operations](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-reporting/)
 - [AWS S3 Replication 공식 문서](https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html)
 - [S3 Batch Operations 가이드](https://docs.aws.amazon.com/AmazonS3/latest/userguide/batch-ops.html)

@@ -153,15 +153,15 @@ module "encrypted_s3" {
   sse_algorithm           = "aws:kms"
   kms_master_key_id       = aws_kms_key.s3.id
   enable_bucket_lifecycle = true
-  lifecycle_rules = [
-    {
-      id                = "archive-old-data"
-      status            = "Enabled"
-      glacier_ir_days   = 90
-      deep_archive_days = 365
-      expiration_days   = 730
+  lifecycle_rules = {
+    "archive-old-data" = {
+      transitions = {
+        GLACIER_IR   = 90
+        DEEP_ARCHIVE = 365
+      }
+      expiration_days = 730
     }
-  ]
+  }
 }
 ```
 
@@ -173,17 +173,16 @@ module "replicated_s3" {
   bucket_name          = "source-bucket"
   enable_versioning    = true
   enable_replication   = true
-  replication_rules = [
-    {
-      id                        = "replicate-all"
-      status                    = true
+  replication_rules = {
+    "replicate-all" = {
+      priority                  = 0
       delete_marker_replication = true
       destination = {
         bucket        = "arn:aws:s3:::destination-bucket"
         storage_class = "GLACIER_IR"
       }
     }
-  ]
+  }
 }
 ```
 
@@ -192,5 +191,6 @@ module "replicated_s3" {
 1. **Version Control**: Version control must be enabled to use replication features
 2. **Object Lock**: Can only be set during bucket creation, cannot be changed afterwards
 3. **Replication Settings**: Existing object replication requires S3 Batch Operations permissions
-4. **Lifecycle Filters**: When setting filters, at least one of prefix, tag, object_size_greater_than, object_size_less_than is required
+4. **Lifecycle Filters**: Omit `filter` to apply a rule to every object. Use `filter.and` to combine two or more conditions; `and` cannot be mixed with prefix, tag or object_size_* at the same level
 5. **Policy Application Order**: Applied in order of S3 bucket → Public access block → Bucket policy to prevent conflicts
+6. **Explicit Typed Inputs**: Resources/blocks provisioned more than once are defined as `map(object({...}))` keyed by a stable ID (e.g. `lifecycle_rules`, `replication_rules`), not lists. Declare the input schema with `optional()` and validate combinations in `validation` blocks; do not add locals that reshape user input (list→map, single→list, alias keys). Locals are only for values fed into `templates/*.tftpl`.
