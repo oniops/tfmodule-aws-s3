@@ -16,17 +16,17 @@ Amazon S3 버킷을 생성하는 테라폼 모듈입니다.
 ## 시작하기
 
 ### 필수 요구사항
-- Terraform >= 1.0
-- AWS Provider >= 4.0
+- Terraform >= 1.7.0
+- AWS Provider >= 6.0
 - AWS 계정 및 적절한 IAM 권한
 
 ### 빠른 시작
 ```bash
-# 저장소 클론
-git clone https://github.com/oniops/tfmodule-aws-s3.git
+# 예제 저장소 클론 (예제는 tfmodule-examples 저장소에서 관리)
+git clone https://github.com/oniops/tfmodule-examples.git
 
 # 모듈 사용 예제
-cd example/basic
+cd tfmodule-examples/tfmodule-aws-s3/basic
 
 # Terraform 초기화
 terraform init
@@ -43,8 +43,14 @@ terraform apply
 ```
 tfmodule-aws-s3/
 ├── main.tf                                    # S3 버킷 기본 리소스
-├── variables.tf                               # 모듈 입력 변수
+├── variables.tf                               # 버킷 공통 변수 (이름, 퍼블릭 액세스, 소유권)
 ├── variables-context.tf                       # 컨텍스트 변수
+├── variables-encryption.tf                    # 암호화 변수
+├── variables-versioning.tf                    # 버전 관리 / Object Lock 변수
+├── variables-lifecycle.tf                     # 라이프사이클 변수
+├── variables-replication.tf                   # 복제 변수
+├── variables-logging.tf                       # 액세스 로깅 변수
+├── variables-policy.tf                        # 버킷 정책 변수
 ├── outputs.tf                                 # 모듈 출력값
 ├── versions.tf                                # Terraform 및 Provider 버전
 │
@@ -65,16 +71,23 @@ tfmodule-aws-s3/
 ├── s3-policy-deny-insecure-transport.tf       # HTTP 차단 정책
 ├── s3-policy-deny-incorrect-encryption.tf     # 잘못된 암호화 차단
 │
-└── example/                                   # 사용 예제
-    ├── basic/                                 # Basic 버킷
-    ├── cloudtrail/                            # CloudTrail 로그 버킷
-    ├── custom-policy/                         # 사용자 정의 버킷 정책
-    ├── lifecycle/                             # 라이프사이클 설정
-    ├── replica-basic/                         # 기본 복제
-    ├── replica-filtered-kms/                  # 필터 + KMS 암호화 복제
-    ├── replica-multiple/                      # 다중 복제 규칙
-    └── replica-reporting/                     # Batch Operations 복제
+└── templates/                                 # 버킷/IAM 정책 템플릿 (*.tftpl)
 ```
+
+### 예제
+
+예제는 이 저장소가 아닌 [oniops/tfmodule-examples](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/) 저장소의 `tfmodule-aws-s3/` 디렉토리에서 관리합니다.
+
+| 예제 | 설명 |
+|------|------|
+| [basic](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/basic/) | Basic 버킷 |
+| [cloudtrail](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/cloudtrail/) | CloudTrail 로그 버킷 |
+| [custom-policy](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/custom-policy/) | 사용자 정의 버킷 정책 |
+| [lifecycle](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/lifecycle/) | 라이프사이클 설정 |
+| [replica-basic](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-basic/) | 기본 Cross-Region 복제 |
+| [replica-filtered-kms](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-filtered-kms/) | 필터 + KMS 암호화 복제 |
+| [replica-multiple](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-multiple/) | 다중 복제 규칙 |
+| [replica-reporting](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/replica-reporting/) | Batch Operations 복제 |
 
 ## 주요 기능
 
@@ -195,31 +208,49 @@ versioning = {
 #### 라이프사이클 관리
 ```hcl
 enable_bucket_lifecycle = true
-lifecycle_rules = [
-  {
-    id                = "archive-old-data"
-    status            = "Enabled"
+lifecycle_rules = {
+  # map key = rule ID
+  "archive-old-data" = {
+    enabled = true  # 기본값 true
 
-    # 스토리지 클래스 전환
-    standard_ia_days          = 30
-    intelligent_tiering_days  = 60
-    glacier_ir_days           = 90
-    glacier_days              = 180
-    deep_archive_days         = 365
+    # 필터링 - 조건이 2개 이상이면 and 사용
+    filter = {
+      and = {
+        prefix = "logs/"
+        tags   = { Archive = "true" }
+      }
+    }
+
+    # 스토리지 클래스 전환 (STORAGE_CLASS = 경과 일수)
+    transitions = {
+      STANDARD_IA         = 30
+      INTELLIGENT_TIERING = 60
+      GLACIER_IR          = 90
+      GLACIER             = 180
+      DEEP_ARCHIVE        = 365
+    }
 
     # 객체 만료
     expiration_days = 730
 
-    # 필터링
-    filter = {
-      prefix = "logs/"
-      tag = {
-        Archive = "true"
-      }
-    }
+    # 비현재 버전 (버전 관리 필요)
+    noncurrent_version_transitions     = { GLACIER = 30 }
+    noncurrent_version_expiration_days = 365
   }
-]
+}
 ```
+
+| 속성 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| (map key) | string | - | 규칙 ID |
+| `enabled` | bool | `true` | 규칙 활성화 여부 |
+| `filter` | object | `{}` (전체 객체) | `prefix`, `tag = { key, value }`, `object_size_greater_than`, `object_size_less_than`, `and = { prefix, tags, object_size_* }` 중 선택. `and` 는 다른 조건과 함께 쓸 수 없음 |
+| `transitions` | map(number) | `{}` | 스토리지 클래스 → 전환 일수. 허용 key: `STANDARD_IA`, `INTELLIGENT_TIERING`, `ONEZONE_IA`, `GLACIER_IR`, `GLACIER`, `DEEP_ARCHIVE` |
+| `expiration_days` | number | `null` | 객체 만료 일수 |
+| `noncurrent_version_transitions` | map(number) | `{}` | 비현재 버전 스토리지 클래스 → 전환 일수 |
+| `noncurrent_version_expiration_days` | number | `null` | 비현재 버전 만료 일수 |
+
+> ⚠️ 정의되지 않은 속성(예: 오타 `expiraton_days`)은 Terraform 타입 변환 과정에서 **오류 없이 무시**됩니다. `terraform plan` 결과에 의도한 블록이 렌더링되는지 반드시 확인하세요.
 
 #### Object Lock
 ```hcl
@@ -238,42 +269,57 @@ S3 복제를 통해 버킷 간 자동 또는 수동으로 객체를 복사할 �
 enable_versioning  = true  # 필수
 enable_replication = true
 
-replication_rules = [
-  {
-    id                        = "realtime-replication"
-    status                    = true
+replication_rules = {
+  # map key = rule ID
+  "realtime-replication" = {
+    priority                  = 0      # 필수, 규칙마다 고유
     delete_marker_replication = false
 
     destination = {
       bucket        = "arn:aws:s3:::target-bucket"
-      storage_class = "STANDARD_IA"  # null이면 원본과 동일
-    }
+      storage_class = "STANDARD_IA"  # 생략 시 원본과 동일
 
-    # 15분 내 복제 보장 (RTC)
-    replication_time = {
-      status  = true
-      minutes = 15
+      # 15분 내 복제 보장 (RTC) - metrics 필요
+      replication_time = true
+      metrics          = true
     }
   }
-]
+}
 ```
+
+| 속성 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| (map key) | string | - | 규칙 ID |
+| `priority` | number | **필수** | 규칙 우선순위 (규칙마다 고유) |
+| `enabled` | bool | `true` | 규칙 활성화 여부 |
+| `delete_marker_replication` | bool | `false` | 삭제 마커 복제 |
+| `existing_object_replication` | bool | `false` | 기존 객체 복제 (AWS Support 활성화 필요) |
+| `filter` | object | `{}` (전체 객체) | `prefix`, `tag = { key, value }`, `and = { prefix, tags }` 중 선택. `and` 는 다른 조건과 함께 쓸 수 없음 |
+| `destination.bucket` | string | **필수** | 대상 버킷 ARN |
+| `destination.storage_class` | string | `null` | 대상 스토리지 클래스 |
+| `destination.account_id` | string | `null` | 대상 계정 ID (Cross-Account) |
+| `destination.owner_override` | bool | `false` | 복제본 소유자를 대상 계정으로 변경 (`account_id` 필요) |
+| `destination.replica_kms_key_id` | string | `null` | 대상 KMS 키 ARN (`source_selection_criteria.sse_kms_encrypted_objects = true` 필요) |
+| `destination.replication_time` | bool | `false` | S3 RTC (15분) 활성화 (`metrics = true` 필요) |
+| `destination.metrics` | bool | `false` | 복제 메트릭 활성화 |
+| `source_selection_criteria.sse_kms_encrypted_objects` | bool | `false` | SSE-KMS 암호화 객체 복제 |
+| `source_selection_criteria.replica_modifications` | bool | `false` | 복제본 메타데이터 변경 동기화 |
 
 #### Batch Operations (기존 객체)
 ```hcl
 # 기존 객체 복제를 위한 리포트 버킷 설정
 replication_report_bucket_arn = "arn:aws:s3:::report-bucket"
 
-replication_rules = [
-  {
-    id                          = "batch-replication"
-    status                      = true
+replication_rules = {
+  "batch-replication" = {
+    priority                    = 0
     existing_object_replication = false  # Batch로 별도 처리
 
     destination = {
       bucket = "arn:aws:s3:::target-bucket"
     }
   }
-]
+}
 ```
 
 📖 **[S3 복제 완벽 가이드](./HELP-REPLICA.md)** - 복제 설정, Batch Operations, 예제 시나리오, 문제 해결 등 상세 정보
@@ -313,6 +359,8 @@ attach_elb_log_delivery_policy = true
 | `enable_versioning` | `false` | 버전 관리 활성화 |
 | `enable_bucket_lifecycle` | `false` | 라이프사이클 규칙 활성화 |
 | `enable_replication` | `false` | 복제 활성화 |
+| `lifecycle_rules` | `{}` | 라이프사이클 규칙 map (key = rule ID) |
+| `replication_rules` | `{}` | 복제 규칙 map (key = rule ID) |
 
 ### 정책 관련 변수
 
@@ -326,7 +374,7 @@ attach_elb_log_delivery_policy = true
 | `attach_elb_log_delivery_policy` | bool | `false` | Classic ELB 액세스 로그 수신 허용 |
 | `attach_access_log_delivery_policy` | bool | `false` | S3 서버 액세스 로그 수신 허용 |
 | `attach_aws_inspector_report_policy` | bool | `false` | AWS Inspector 리포트 익스포트 허용 |
-| `cloudfront_distributions_arn` | list(string) | `[]` | CloudFront OAC 접근을 허용할 배포 ARN 목록 |
+| `cloudfront_distributions_arn` | set(string) | `[]` | CloudFront OAC 접근을 허용할 배포 ARN 목록 |
 | `source_vpce` | string | `null` | 지정된 VPC 엔드포인트로만 객체 읽기 허용 |
 | `attach_custom_policy` | any | `null` | 사용자 정의 statement (list/object/JSON 문자열 모두 허용) |
 
@@ -425,17 +473,14 @@ module "log_bucket" {
 
   # 라이프사이클 - 오래된 로그 삭제
   enable_bucket_lifecycle = true
-  lifecycle_rules = [
-    {
-      id              = "delete-old-logs"
-      status          = "Enabled"
-      expiration_days = 90
-
+  lifecycle_rules = {
+    "delete-old-logs" = {
       filter = {
         prefix = "logs/"
       }
+      expiration_days = 90
     }
-  ]
+  }
 }
 ```
 
@@ -486,10 +531,9 @@ module "source" {
 
   # 복제 설정
   enable_replication = true
-  replication_rules = [
-    {
-      id                        = "dr-replication"
-      status                    = true
+  replication_rules = {
+    "dr-replication" = {
+      priority                  = 0
       delete_marker_replication = false
 
       destination = {
@@ -500,12 +544,10 @@ module "source" {
 
       # KMS 암호화된 객체 복제
       source_selection_criteria = {
-        sse_kms_encrypted_objects = {
-          enabled = true
-        }
+        sse_kms_encrypted_objects = true
       }
     }
-  ]
+  }
 
   force_destroy = true
   depends_on    = [module.target]
@@ -560,7 +602,7 @@ module "s3_with_custom_policy" {
 }
 ```
 
-전체 예제는 [`example/custom-policy/`](./example/custom-policy/) 를 참고하세요.
+전체 예제는 [`tfmodule-aws-s3/custom-policy/`](https://github.com/oniops/tfmodule-examples/tree/main/tfmodule-aws-s3/custom-policy/) 를 참고하세요.
 
 ### 6. CloudFront 배포용 정적 웹사이트 버킷
 
@@ -582,14 +624,11 @@ module "static_website" {
 
   # 캐시 최적화를 위한 라이프사이클
   enable_bucket_lifecycle = true
-  lifecycle_rules = [
-    {
-      id     = "cleanup-old-versions"
-      status = "Enabled"
-
+  lifecycle_rules = {
+    "cleanup-old-versions" = {
       noncurrent_version_expiration_days = 30
     }
-  ]
+  }
 }
 ```
 
@@ -671,8 +710,8 @@ terraform fmt -check -recursive
 # 계획 실행 (dry-run)
 terraform plan
 
-# 예제 테스트
-cd example/lifecycle
+# 예제 테스트 (tfmodule-examples 저장소)
+cd tfmodule-examples/tfmodule-aws-s3/lifecycle
 terraform init && terraform plan
 ```
 

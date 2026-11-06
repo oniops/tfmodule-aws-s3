@@ -5,6 +5,9 @@ locals {
   } : {}
 
   enabled_versioning = var.create && length(local.versioning) > 0 ? true : false
+
+  bucket_versioning_status = var.bucket_versioning_status != "" ? var.bucket_versioning_status : try(aws_s3_bucket_versioning.this[0].versioning_configuration[0].status, var.enable_versioning ? "Enabled" : "")
+  enable_versioning_status = lower(local.bucket_versioning_status) == "enabled"
 }
 
 resource "aws_s3_bucket_versioning" "this" {

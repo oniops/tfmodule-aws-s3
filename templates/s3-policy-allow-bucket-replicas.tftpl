@@ -20,6 +20,15 @@
         "${replication_report_bucket_arn}",
         "${replication_report_bucket_arn}/*"
       ]
+    },
+    {
+      "Sid": "AllowGetManifestFromReportBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": "${replication_report_bucket_arn}/*"
     },%{ endif ~}
     {
       "Sid": "AllowPrimaryToInitiateReplication",
