@@ -6,12 +6,13 @@ Amazon S3 버킷을 생성하는 테라폼 모듈입니다.
 - [시작하기](#시작하기)
 - [모듈 구조](#모듈-구조)
 - [주요 기능](#주요-기능)
-- [사용 방법](#사용-방법)
 - [변수 설명](#변수-설명)
 - [출력값](#출력값)
 - [예제](#예제)
+- [버전 업그레이드 / 마이그레이션](./HELP-MIGRATION-GUIDE.md)
 - [문제 해결](#문제-해결)
 - [기여 가이드](#기여-가이드)
+
 
 ## 시작하기
 
@@ -19,6 +20,8 @@ Amazon S3 버킷을 생성하는 테라폼 모듈입니다.
 - Terraform >= 1.7.0
 - AWS Provider >= 6.0
 - AWS 계정 및 적절한 IAM 권한
+
+> ⚠️ **v1.7.0 이하에서 업그레이드하는 경우**: v1.8.0 은 `lifecycle_rules` / `replication_rules` 입력 형식이 바뀐 Breaking 릴리스입니다. [마이그레이션 가이드](./HELP-MIGRATION-GUIDE.md)를 먼저 확인하세요.
 
 ### 빠른 시작
 ```bash
@@ -249,8 +252,28 @@ lifecycle_rules = {
 | `expiration_days` | number | `null` | 객체 만료 일수 |
 | `noncurrent_version_transitions` | map(number) | `{}` | 비현재 버전 스토리지 클래스 → 전환 일수 |
 | `noncurrent_version_expiration_days` | number | `null` | 비현재 버전 만료 일수 |
+| `abort_incomplete_multipart_upload_days` | number | `null` | 시작 후 N일이 지나도 완료되지 않은 멀티파트 업로드 삭제. 태그 기반 필터(`filter.tag`, `filter.and.tags`)와 함께 쓸 수 없음 |
 
 > ⚠️ 정의되지 않은 속성(예: 오타 `expiraton_days`)은 Terraform 타입 변환 과정에서 **오류 없이 무시**됩니다. `terraform plan` 결과에 의도한 블록이 렌더링되는지 반드시 확인하세요.
+
+**미완료 멀티파트 업로드 정리** — 업로드가 중단된 파트는 객체 목록에 보이지 않지만 저장 요금이 계속 발생합니다.
+
+```hcl
+lifecycle_rules = {
+  # 버킷 전체: 시작 후 7일이 지나도 완료되지 않은 멀티파트 업로드 삭제
+  "abort-incomplete-mpu-7d" = {
+    abort_incomplete_multipart_upload_days = 7
+  }
+
+  # prefix 기준: uploads/ 아래만
+  "uploads-abort-mpu-7d" = {
+    filter                                 = { prefix = "uploads/" }
+    abort_incomplete_multipart_upload_days = 7
+  }
+}
+```
+
+> 버킷 전체 규칙이 있으면 prefix 규칙의 대상도 이미 포함됩니다. 두 규칙의 일수가 다르면 겹치는 업로드에는 더 짧은 일수가 적용됩니다.
 
 #### Object Lock
 ```hcl
@@ -737,7 +760,7 @@ docs(readme): Add CloudFront OAC configuration example
 ## 지원 및 문의
 
 - **버그 리포트**: [GitHub Issues](https://github.com/oniops/tfmodule-aws-s3/issues)
-- **보안 문제**: infraops_oni@opsnow.com
+- **보안 문제**: 공개 Issue 대신 [GitHub Security Advisory](https://github.com/oniops/tfmodule-aws-s3/security/advisories/new) 로 비공개 제보해 주세요
 - **문서**: [Wiki](https://github.com/oniops/tfmodule-aws-s3/wiki)
 
 
@@ -749,3 +772,5 @@ docs(readme): Add CloudFront OAC configuration example
 ## 변경 이력
 
 📌 **참고**: 이 모듈은 지속적으로 업데이트됩니다. 최신 버전과 기능은 [릴리즈 페이지](https://github.com/oniops/tfmodule-aws-s3/tags)에서 확인하세요.
+
+- **v1.8.0**: `lifecycle_rules` / `replication_rules` 를 typed map 으로 전환 (Breaking) — [마이그레이션 가이드](./HELP-MIGRATION-GUIDE.md)

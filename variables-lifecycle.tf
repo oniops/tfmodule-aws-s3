@@ -33,6 +33,15 @@ S3 lifecycle rules. The map key is the rule ID.
     "all-objects" = {                     # no filter = every object in the bucket
       expiration_days = 1825
     }
+
+    "abort-incomplete-mpu-7d" = {         # delete incomplete multipart uploads 7 days after initiation
+      abort_incomplete_multipart_upload_days = 7
+    }
+
+    "uploads-abort-mpu-7d" = {            # same, only under the uploads/ prefix
+      filter                                 = { prefix = "uploads/" }
+      abort_incomplete_multipart_upload_days = 7
+    }
   }
 
   filter (all optional, mirrors the AWS lifecycle filter schema)
@@ -46,6 +55,8 @@ S3 lifecycle rules. The map key is the rule ID.
       object_size_greater_than = 1024
       object_size_less_than    = 1048576
     }
+
+  abort_incomplete_multipart_upload_days cannot be combined with a tag-based filter (filter.tag or filter.and.tags).
 
   Storage classes: STANDARD_IA, INTELLIGENT_TIERING, ONEZONE_IA, GLACIER_IR, GLACIER, DEEP_ARCHIVE
 EOF
@@ -66,10 +77,11 @@ EOF
       }))
     }), {})
 
-    transitions                        = optional(map(number), {})
-    expiration_days                    = optional(number)
-    noncurrent_version_transitions     = optional(map(number), {})
-    noncurrent_version_expiration_days = optional(number)
+    transitions                            = optional(map(number), {})
+    expiration_days                        = optional(number)
+    noncurrent_version_transitions         = optional(map(number), {})
+    noncurrent_version_expiration_days     = optional(number)
+    abort_incomplete_multipart_upload_days = optional(number)
   }))
   default = {}
 
@@ -94,6 +106,17 @@ EOF
       )
     ])
     error_message = "lifecycle_rules filter.and cannot be combined with filter.prefix, filter.tag or filter.object_size_*. Put every condition inside filter.and."
+  }
+
+  validation {
+    condition = alltrue([
+      for rule in values(var.lifecycle_rules) :
+      rule.abort_incomplete_multipart_upload_days == null || (
+        rule.filter.tag == null &&
+        try(rule.filter.and.tags, null) == null
+      )
+    ])
+    error_message = "lifecycle_rules abort_incomplete_multipart_upload_days cannot be used with a tag-based filter (filter.tag or filter.and.tags)."
   }
 }
 

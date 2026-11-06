@@ -10,9 +10,9 @@ variable "context" {
     customer    = "My Customer"
     department  = "DevOps"
     team        = "DevOps"
-    owner       = "me@devopsdemo.io"
-    domain      = "devopsdemo.io"
-    pri_domain  = "devopsdemo.internal"
+    owner       = "owner@example.com"
+    domain      = "example.com"
+    pri_domain  = "internal.example.com"
   }
 EOF
 

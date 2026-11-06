@@ -59,6 +59,14 @@ resource "aws_s3_bucket_lifecycle_configuration" "this" {
         }
       }
 
+      # Delete incomplete multipart uploads N days after initiation (not allowed with tag-based filters).
+      dynamic "abort_incomplete_multipart_upload" {
+        for_each = rule.value.abort_incomplete_multipart_upload_days[*]
+        content {
+          days_after_initiation = abort_incomplete_multipart_upload.value
+        }
+      }
+
       dynamic "noncurrent_version_expiration" {
         for_each = rule.value.noncurrent_version_expiration_days[*]
         content {
